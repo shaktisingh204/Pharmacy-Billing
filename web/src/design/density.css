@@ -1,0 +1,40 @@
+/* Density is swapped by data-density, persisted per user.
+ *
+ * The selectors are deliberately NOT :root-scoped. Density has to work on a
+ * subtree as well as the document: the app runs comfortable while the Medicines
+ * and Sales grids inside it run compact, and /billing runs pos. Scoping these to
+ * :root makes that impossible and silently renders every density identically.
+ *
+ * NOTE: `pos` is LARGER, not smaller. A counter operator on a matte touch panel
+ * needs bigger targets even though the screen carries more information.
+ */
+:root,
+[data-density='comfortable'] {
+  --row-h: 44px;
+  --control-h: 36px;
+  --cell-px: 12px;
+  --font-body: 14px;
+  --icon: 16px;
+  --tap-min: 36px;
+}
+
+[data-density='compact'] {
+  --row-h: 36px;
+  --control-h: 32px;
+  --cell-px: 10px;
+  --font-body: 13px;
+  --icon: 15px;
+  --tap-min: 32px;
+}
+
+[data-density='pos'] {
+  --row-h: 44px;
+  --control-h: 40px;
+  --cell-px: 12px;
+  --font-body: 15px;
+  --icon: 18px;
+  --tap-min: 44px;
+}
+
+/* Density changes the body size of the subtree it is applied to. */
+[data-density] { font-size: var(--font-body); }

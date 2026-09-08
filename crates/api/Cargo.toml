@@ -1,0 +1,21 @@
+[package]
+name = "rxbill-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+rxbill-domain = { workspace = true }
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["trace", "compression-gzip", "timeout", "cors", "limit", "catch-panic", "request-id", "fs"] }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls-ring", "postgres", "macros", "migrate", "uuid", "chrono", "rust_decimal", "json"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+chrono = { workspace = true }

@@ -1,0 +1,87 @@
+{
+  "$comment": "Every amount is a decimal STRING. inclusive = taxable + cgst + sgst + igst, exactly, in every vector.",
+  "splitInclusive": [
+    {
+      "name": "a full 12-tablet pack at a printed MRP of 100.00 at 5%",
+      "why": "The headline invariant. Per-unit price must be carried at 4dp: at 2dp this bills 99.96 and the customer is charged less than the price printed on the strip in their hand.",
+      "inclusive": "100.00", "ratePct": "5", "interState": false,
+      "taxableValue": "95.24", "cgst": "2.38", "sgst": "2.38", "igst": "0.00"
+    },
+    {
+      "name": "odd paise where the tax halves cannot be equal",
+      "why": "taxTotal 4.77 cannot split evenly. sgst is taken as the residual so the line still foots; computing both independently loses a paisa.",
+      "inclusive": "100.05", "ratePct": "5", "interState": false,
+      "taxableValue": "95.29", "cgst": "2.38", "sgst": "2.38", "igst": "0.00"
+    },
+    {
+      "name": "inter-state supply bills IGST and never the halves",
+      "inclusive": "1180.00", "ratePct": "18", "interState": true,
+      "taxableValue": "1000.00", "cgst": "0.00", "sgst": "0.00", "igst": "180.00"
+    },
+    {
+      "name": "nil-rated (ORS, some life-saving drugs)",
+      "why": "A zero rate must not divide by zero or invent tax.",
+      "inclusive": "24.00", "ratePct": "0", "interState": false,
+      "taxableValue": "24.00", "cgst": "0.00", "sgst": "0.00", "igst": "0.00"
+    },
+    {
+      "name": "18% nutraceutical",
+      "inclusive": "349.00", "ratePct": "18", "interState": false,
+      "taxableValue": "295.76", "cgst": "26.62", "sgst": "26.62", "igst": "0.00"
+    },
+    {
+      "name": "12% legacy stock still on the shelf",
+      "inclusive": "212.40", "ratePct": "12", "interState": false,
+      "taxableValue": "189.64", "cgst": "11.38", "sgst": "11.38", "igst": "0.00"
+    },
+    {
+      "name": "a single loose tablet",
+      "inclusive": "8.33", "ratePct": "5", "interState": false,
+      "taxableValue": "7.93", "cgst": "0.20", "sgst": "0.20", "igst": "0.00"
+    },
+    {
+      "name": "a rupee at 5%",
+      "inclusive": "1.00", "ratePct": "5", "interState": false,
+      "taxableValue": "0.95", "cgst": "0.03", "sgst": "0.02", "igst": "0.00"
+    }
+  ],
+
+  "mrpPerUnit": [
+    { "why": "The canonical case: 4dp survives the round trip, 2dp does not.",
+      "mrpPerPack": "100.00", "unitsPerPack": 12, "expected": "8.3333", "fullPackTotal": "100.00" },
+    { "mrpPerPack": "30.60", "unitsPerPack": 10, "expected": "3.0600", "fullPackTotal": "30.60" },
+    { "mrpPerPack": "100.00", "unitsPerPack": 3,  "expected": "33.3333", "fullPackTotal": "100.00" },
+    { "mrpPerPack": "100.00", "unitsPerPack": 7,  "expected": "14.2857", "fullPackTotal": "100.00" },
+    { "mrpPerPack": "212.40", "unitsPerPack": 15, "expected": "14.1600", "fullPackTotal": "212.40" },
+    { "mrpPerPack": "49.50",  "unitsPerPack": 6,  "expected": "8.2500",  "fullPackTotal": "49.50" }
+  ],
+
+  "roundOff": [
+    { "net": "1284.50", "rounded": "1285", "adjustment": "0.50",
+      "why": "Exactly 50 paise rounds UP, away from zero. Float rounds ties to even and would give 1284." },
+    { "net": "1284.49", "rounded": "1284", "adjustment": "-0.49" },
+    { "net": "1284.00", "rounded": "1284", "adjustment": "0.00" },
+    { "net": "0.50",    "rounded": "1",    "adjustment": "0.50" },
+    { "net": "99.51",   "rounded": "100",  "adjustment": "0.49" }
+  ],
+
+  "apportion": [
+    { "why": "Largest-remainder: the parts must sum to the total exactly, or the bill discount does not reconcile with the tax breakup.",
+      "total": "10.00", "weights": ["33.33", "33.33", "33.34"], "expected": ["3.33", "3.33", "3.34"] },
+    { "total": "1.00", "weights": ["1.00", "1.00", "1.00"], "expected": ["0.34", "0.33", "0.33"] },
+    { "total": "0.01", "weights": ["50.00", "50.00"], "expected": ["0.01", "0.00"] },
+    { "total": "0.00", "weights": ["10.00", "20.00"], "expected": ["0.00", "0.00"] }
+  ],
+
+  "decimal": [
+    { "op": "round", "a": "2.385", "dp": 2, "expected": "2.39",
+      "why": "Half away from zero. (2.385).toFixed(2) is '2.38' because 2.385 is not representable in binary." },
+    { "op": "round", "a": "-2.385", "dp": 2, "expected": "-2.39" },
+    { "op": "round", "a": "1.005", "dp": 2, "expected": "1.01",
+      "why": "The textbook float failure: (1.005).toFixed(2) === '1.00'." },
+    { "op": "add", "a": "0.1", "b": "0.2", "expected": "0.30",
+      "why": "0.1 + 0.2 !== 0.3 in IEEE-754." },
+    { "op": "mul", "a": "8.3333", "b": "12", "expected": "100.00" },
+    { "op": "div", "a": "100", "b": "3", "expected": "33.33" }
+  ]
+}

@@ -1,0 +1,242 @@
+/* Tailwind v4, CSS-first. THIS IMPORT IS LOAD-BEARING: it was missing, and without
+   it every utility class in the app silently produces no styles. */
+@import "tailwindcss";
+@import "./density.css";
+@import "./base.css";
+
+/* ============================================================================
+   RxBill design tokens
+   Light is the product. A dark palette exists only for the customer display.
+   ========================================================================== */
+:root {
+  /* --- Accent: teal, already committed in index.html (theme-color #0d9488) --- */
+  --accent-1:  #F0FDFA;
+  --accent-2:  #E0FBF5;
+  --accent-3:  #CCFBF1;  /* selected row tint */
+  --accent-6:  #5EEAD4;  /* focus-ring border */
+  --accent-9:  #0D9488;  /* primary action */
+  --accent-10: #0F766E;  /* hover */
+  --accent-11: #115E59;  /* accent text on tint */
+
+  /* --- Surfaces --- */
+  --bg-app:     #F7F8F8;
+  --bg-surface: #FFFFFF;
+  --bg-subtle:  #F1F3F4;  /* table headers, zebra */
+  --bg-inset:   #ECEFF0;  /* input wells */
+  --bg-hover:   #F4F6F6;
+
+  /* --- Text (contrast verified: fg on bg-app 15.6:1, fg-muted on white 5.0:1) --- */
+  --fg:          #101828;
+  --fg-muted:    #667085;
+  --fg-subtle:   #98A2B3;
+  --fg-disabled: #B4BCC6;
+  --fg-on-accent:#FFFFFF;
+
+  /* --- Borders, three weights. The single biggest "premium" tell. --- */
+  --border-subtle: #EAECF0;  /* internal table rules */
+  --border:        #D0D5DD;  /* cards, inputs */
+  --border-strong: #98A2B3;  /* hover, pressed, focus-within */
+
+  /* --- Semantic --- */
+  --success-3: #DCFCE7; --success-9: #16A34A; --success-11: #15803D;
+  --warning-3: #FEF3C7; --warning-9: #D97706; --warning-11: #B45309;
+  --danger-3:  #FEE2E2; --danger-9:  #DC2626; --danger-11:  #B91C1C;
+  --info-3:    #DBEAFE; --info-9:    #2563EB; --info-11:    #1D4ED8;
+
+  /* --- Pharmacy status. First-class, never ad-hoc. --- */
+  --status-expired:      #DC2626;
+  --status-expiry-30:    #DC2626;
+  --status-expiry-60:    #EA580C;
+  --status-expiry-90:    #D97706;
+  /* Deliberately a DIFFERENT HUE: the 180-day bucket means "still returnable to
+     the supplier". That is an opportunity, not a danger, and it must never read
+     as red or staff will treat the actionable bucket as noise. */
+  --status-expiry-180:   #6366F1;
+  --status-low-stock:    #D97706;
+  --status-out-of-stock: #98A2B3;
+  --status-quarantine:   #6B7280;
+
+  /* --- Drug schedule chips --- */
+  --schedule-otc: #667085;
+  --schedule-h:   #7C3AED;
+  --schedule-h1:  #C026D3;  /* must be unmistakable at a glance */
+  --schedule-x:   #BE123C;
+  --schedule-nrx: #0891B2;
+
+  /* --- Spacing: 4px base, no off-scale values --- */
+  --space-0: 0;     --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px;  --space-5: 20px; --space-6: 24px; --space-8: 32px;
+  --space-10: 40px; --space-12: 48px; --space-16: 64px;
+
+  /* --- Radii. Nothing above 16px: large radii + heavy shadows read consumer. --- */
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* --- Shadows: low alpha, tinted with the text neutral, never pure black.
+         Cards get border + shadow-xs. Elevation is reserved for things that float. --- */
+  --shadow-xs: 0 1px 2px 0 rgb(16 24 40 / .05);
+  --shadow-sm: 0 1px 3px 0 rgb(16 24 40 / .08), 0 1px 2px -1px rgb(16 24 40 / .06);
+  --shadow-md: 0 4px 8px -2px rgb(16 24 40 / .08), 0 2px 4px -2px rgb(16 24 40 / .05);
+  --shadow-lg: 0 12px 24px -6px rgb(16 24 40 / .10), 0 4px 8px -4px rgb(16 24 40 / .06);
+  --shadow-overlay: 0 24px 48px -12px rgb(16 24 40 / .18);
+
+  /* --- Motion: only opacity / transform / background-color. Nothing animates layout. --- */
+  --dur-fast: 90ms;
+  --dur-base: 140ms;
+  --ease: cubic-bezier(.2, 0, 0, 1);
+
+  /* --- Typography. Self-hosted; the till must boot on a LAN. --- */
+  --font-sans: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system,
+               'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-2xs: 11px;  --leading-2xs: 16px;
+  --text-xs:  12px;  --leading-xs:  16px;
+  --text-sm:  13px;  --leading-sm:  18px;
+  --text-base:14px;  --leading-base:20px;
+  --text-lg:  16px;  --leading-lg:  24px;
+  --text-xl:  20px;  --leading-xl:  28px;
+  --text-2xl: 24px;  --leading-2xl: 32px;
+  --text-3xl: 30px;  --leading-3xl: 38px;
+  --text-4xl: 40px;  --leading-4xl: 44px;
+
+
+  /* --- Data visualisation ------------------------------------------------
+     COMPUTED, not chosen. Validated with the dataviz skill's checker against
+     this app's white card surface:
+
+       all-pairs (donuts, where every segment is on screen at once) — slots 1-4
+         worst CVD ΔE 10.7 (protan), normal-vision ΔE 16.3, all four ≥ 3:1 contrast
+       adjacent (grouped bars, stacks) — slots 1-5
+         slot 5 is yellow at 2.17:1, so it ships ONLY with direct labels
+
+     Red is deliberately absent: it is reserved for status, and a series that
+     borrows the danger hue makes "expired" mean nothing. */
+  --viz-1: #0D9488;  /* teal — the brand accent leads */
+  --viz-2: #4A3AA7;  /* violet */
+  --viz-3: #2A78D6;  /* blue */
+  --viz-4: #EB6834;  /* orange */
+  --viz-5: #EDA100;  /* yellow — adjacent forms only, direct labels required */
+
+  /* Sequential ramp for magnitude (one hue, light -> dark). Never a rainbow. */
+  --viz-seq-1: #99F6E4;
+  --viz-seq-2: #5EEAD4;
+  --viz-seq-3: #2DD4BF;
+  --viz-seq-4: #14B8A6;
+  --viz-seq-5: #0D9488;
+  --viz-seq-6: #0F766E;
+
+  /* Chart chrome stays recessive: the data is the ink. */
+  --viz-grid: #EAECF0;
+  --viz-axis: #98A2B3;
+  --viz-muted: #D0D5DD;
+
+  /* Shell */
+  --sidebar-w: 232px;
+
+  /* --- Shell geometry --- */
+  --topbar-h: 48px;
+  --rail-w: 64px;
+  --rail-w-expanded: 224px;
+}
+
+/* Expose tokens to Tailwind utilities (bg-surface, text-fg-muted, border-subtle, …) */
+@theme inline {
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-accent-6: var(--accent-6);
+  --color-accent-9: var(--accent-9);
+  --color-accent-10: var(--accent-10);
+  --color-accent-11: var(--accent-11);
+
+  --color-app: var(--bg-app);
+  --color-surface: var(--bg-surface);
+  --color-subtle: var(--bg-subtle);
+  --color-inset: var(--bg-inset);
+  --color-hover: var(--bg-hover);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-disabled: var(--fg-disabled);
+  --color-fg-on-accent: var(--fg-on-accent);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-success-3: var(--success-3);
+  --color-success-9: var(--success-9);
+  --color-success-11: var(--success-11);
+  --color-warning-3: var(--warning-3);
+  --color-warning-9: var(--warning-9);
+  --color-warning-11: var(--warning-11);
+  --color-danger-3: var(--danger-3);
+  --color-danger-9: var(--danger-9);
+  --color-danger-11: var(--danger-11);
+  --color-info-3: var(--info-3);
+  --color-info-9: var(--info-9);
+  --color-info-11: var(--info-11);
+
+  --color-expired: var(--status-expired);
+  --color-expiry-30: var(--status-expiry-30);
+  --color-expiry-60: var(--status-expiry-60);
+  --color-expiry-90: var(--status-expiry-90);
+  --color-expiry-180: var(--status-expiry-180);
+  --color-low-stock: var(--status-low-stock);
+  --color-out-of-stock: var(--status-out-of-stock);
+  --color-quarantine: var(--status-quarantine);
+
+  --color-schedule-otc: var(--schedule-otc);
+  --color-schedule-h: var(--schedule-h);
+  --color-schedule-h1: var(--schedule-h1);
+  --color-schedule-x: var(--schedule-x);
+  --color-schedule-nrx: var(--schedule-nrx);
+
+  --color-viz-1: var(--viz-1);
+  --color-viz-2: var(--viz-2);
+  --color-viz-3: var(--viz-3);
+  --color-viz-4: var(--viz-4);
+  --color-viz-5: var(--viz-5);
+  --color-viz-grid: var(--viz-grid);
+  --color-viz-axis: var(--viz-axis);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-2xs: var(--text-2xs);
+  --text-2xs--line-height: var(--leading-2xs);
+  --text-xs: var(--text-xs);
+  --text-xs--line-height: var(--leading-xs);
+  --text-sm: var(--text-sm);
+  --text-sm--line-height: var(--leading-sm);
+  --text-base: var(--text-base);
+  --text-base--line-height: var(--leading-base);
+  --text-lg: var(--text-lg);
+  --text-lg--line-height: var(--leading-lg);
+  --text-xl: var(--text-xl);
+  --text-xl--line-height: var(--leading-xl);
+  --text-2xl: var(--text-2xl);
+  --text-2xl--line-height: var(--leading-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-3xl--line-height: var(--leading-3xl);
+  --text-4xl: var(--text-4xl);
+  --text-4xl--line-height: var(--leading-4xl);
+
+  --ease-out-quint: var(--ease);
+}

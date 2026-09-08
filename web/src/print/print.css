@@ -1,0 +1,296 @@
+/* ============================================================================
+   Print sheets.
+   Two targets, one stylesheet: an 80mm thermal roll (the counter default) and
+   A4 (B2B tax invoices). Nothing here applies on screen except the deliberate
+   preview affordance — the app shell and the sheet never coexist on paper.
+
+   MOUNTING CONTRACT: the sheet must be a DIRECT CHILD OF <body> — render it
+   through createPortal(<ThermalReceipt … />, document.body). The print rule
+   below hides every other body child, which is the only way to guarantee the
+   shell is gone regardless of what the billing screen is showing.
+   ========================================================================== */
+
+.rx-print {
+  /* Print is a two-ink medium. The token palette is a screen palette: a 203dpi
+     thermal head has no greys, and on A4 a tinted fill only costs toner. These
+     two are the entire print palette, and they are keywords, not hexes. */
+  --print-ink: black;
+  --print-paper: white;
+  --print-mono: var(--font-mono, ui-monospace, 'SF Mono', Menlo, monospace);
+  --print-sans: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+
+  /* Mounted at body level for the print rule below; only print reveals it. */
+  display: none;
+  color: var(--print-ink);
+  background: var(--print-paper);
+}
+
+/* The design gate and the post-sale dialog show the sheet on screen before it
+   is committed to paper. Same box, same metrics — a preview that lies is worse
+   than no preview. */
+.rx-print[data-preview='true'] {
+  display: block;
+  border: 1px solid var(--border);
+}
+
+/* ------------------------------------------------------------- thermal ---- */
+
+.rx-print--thermal {
+  /* 42 columns is the safe width for the 203dpi heads on the common Indian
+     80mm printers (576 dots at a 12-dot cell). Both values are custom
+     properties so a 58mm/32-column profile is a config change, not a rewrite —
+     see the [data-cols='32'] rule below. */
+  --rx-print-cols: 42;
+  --rx-print-width: 72mm;
+  /* Advance width of one monospace cell, in em. JetBrains Mono, SF Mono, Menlo
+     and Courier are all 0.6, so the grid holds whichever one resolves. */
+  --rx-print-advance: 0.6;
+  /* Not 1: a run of cells that adds up to EXACTLY the box width overflows it as
+     soon as the layout engine rounds one advance up, and the line then wraps —
+     on every line. Half a percent of air is invisible on the roll. */
+  --rx-print-fit: 0.995;
+
+  box-sizing: border-box;
+  /* 72mm of ink on 80mm paper; @page has no margin, so the roll centres it. */
+  width: var(--rx-print-width);
+  margin: 0 auto;
+  padding-block: 2mm 8mm;        /* trailing feed clears the tear bar */
+
+  font-family: var(--print-mono);
+  /* The font size FOLLOWS the grid: 42 cells across 72mm is a 1.71mm cell,
+     which is ~10.8px. Setting the size directly would let the two drift. */
+  font-size: calc(
+    var(--rx-print-width) / var(--rx-print-cols) / var(--rx-print-advance) * var(--rx-print-fit)
+  );
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-variant-ligatures: none;
+  letter-spacing: 0;
+}
+
+/* 58mm roll: 32 columns across the 48mm printable width. */
+.rx-print--thermal[data-cols='32'] {
+  --rx-print-cols: 32;
+  --rx-print-width: 48mm;
+}
+
+.rx-print__line {
+  margin: 0;
+  /* pre-wrap keeps the padding that makes the column grid, but still lets a
+     medicine name too long for its cell wrap instead of running off the roll. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.rx-print__centre { text-align: center; }
+
+/* 700, not the 600 the app uses: at 203dpi the head cannot resolve the
+   difference between 500 and 600, and the shop name has to be unmistakable. */
+.rx-print__title {
+  margin: 0 0 1mm;
+  font-size: 1.5em;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.rx-print__bold { font-weight: 700; }
+
+/* The scale comes from the component, which builds the row at the matching
+   (smaller) column count. Hard-coding it here would let the two drift. */
+.rx-print__net {
+  font-size: calc(1em * var(--rx-print-net-scale, 1));
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* An item is two lines that mean nothing apart — never split them across a
+   page (long bills DO spill onto a second length of roll). */
+.rx-print__item { break-inside: avoid; page-break-inside: avoid; }
+
+.rx-print__gap { height: 1.5mm; }
+
+.rx-print__words { margin-top: 1mm; }
+
+.rx-print__qr {
+  margin: 2mm 0 1mm;
+  text-align: center;
+}
+
+.rx-print__qr svg {
+  width: 28mm;
+  height: auto;
+  /* bwip-js sizes its output in device pixels; the roll works in mm. */
+  display: inline-block;
+}
+
+/* ----------------------------------------------------------------- A4 ---- */
+
+.rx-print--a4 {
+  box-sizing: border-box;
+  width: 186mm;                  /* A4 minus the 12mm @page margins */
+  margin: 0 auto;
+  font-family: var(--print-sans);
+  /* Points, not pixels: this sheet is measured against a physical page. */
+  font-size: 9pt;
+  line-height: 1.35;
+}
+
+.rx-a4__title {
+  margin: 0 0 3mm;
+  font-size: 13pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.rx-a4__parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 0.4pt solid var(--print-ink);
+}
+
+.rx-a4__party { padding: 2mm 2.5mm; }
+.rx-a4__party + .rx-a4__party { border-left: 0.4pt solid var(--print-ink); }
+
+.rx-a4__caption {
+  margin-bottom: 1mm;
+  font-size: 7pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rx-a4__name { font-weight: 600; }
+
+.rx-a4__meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 0.4pt solid var(--print-ink);
+  border-top: 0;
+}
+
+.rx-a4__meta > div { padding: 1.5mm 2.5mm; }
+.rx-a4__meta > div + div { border-left: 0.4pt solid var(--print-ink); }
+
+.rx-a4__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 7.5pt;
+}
+
+.rx-a4__table th,
+.rx-a4__table td {
+  border: 0.4pt solid var(--print-ink);
+  padding: 1mm 1.2mm;
+  vertical-align: top;
+  overflow-wrap: anywhere;       /* a long brand name wraps inside its cell */
+}
+
+.rx-a4__table th {
+  font-weight: 600;
+  text-align: left;
+  font-size: 6.5pt;
+  letter-spacing: 0.02em;
+}
+
+/* Repeated on every page: a continuation sheet with no column heads is not a
+   readable invoice. */
+.rx-a4__table thead { display: table-header-group; }
+.rx-a4__table tbody tr { break-inside: avoid; page-break-inside: avoid; }
+
+.rx-a4__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums slashed-zero;
+  white-space: nowrap;
+}
+
+.rx-a4__foot td { font-weight: 600; }
+
+.rx-a4__below {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+  margin-top: 3mm;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.rx-a4__summary {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.5pt;
+}
+
+.rx-a4__summary th,
+.rx-a4__summary td {
+  border: 0.4pt solid var(--print-ink);
+  padding: 1mm 1.2mm;
+}
+
+.rx-a4__summary th { font-weight: 600; text-align: left; font-size: 6.5pt; }
+
+.rx-a4__sign {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 26mm;
+  padding: 2mm 2.5mm;
+  border: 0.4pt solid var(--print-ink);
+  text-align: right;
+}
+
+.rx-a4__declaration {
+  margin-top: 3mm;
+  font-size: 7pt;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.rx-a4__words { margin-top: 2mm; font-size: 8pt; }
+
+/* -------------------------------------------------------------- paper ---- */
+
+@media print {
+  /* Named pages: the sheet picks its own paper via `page:` below. */
+  @page thermal { size: 80mm auto; margin: 0; }
+  @page a4 { size: A4; margin: 12mm; }
+
+  .rx-print--thermal { page: thermal; }
+  .rx-print--a4 { page: a4; }
+
+  /* base.css fixes the shell to the viewport and stops the body scrolling.
+     On paper the document has to be as long as it needs to be. */
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+    /* The fallback is load-bearing: --print-paper is declared on .rx-print, and
+       html/body are not inside it, so without one the declaration is invalid at
+       computed-value time and base.css's app background survives onto paper. */
+    background: var(--print-paper, white);
+  }
+
+  /* The app shell in full. !important because shell nodes carry inline styles. */
+  body > *:not(.rx-print) { display: none !important; }
+
+  /* The preview selector carries an attribute, so it outranks a bare .rx-print
+     and its 1px screen border would otherwise print. */
+  .rx-print,
+  .rx-print[data-preview] {
+    display: block;
+    border: 0;
+  }
+
+  /* Nothing from the screen design survives the trip: a shadow prints as a
+     grey smear and a thermal head burns a filled rectangle at full power. */
+  .rx-print,
+  .rx-print * {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--print-ink) !important;
+  }
+}

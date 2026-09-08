@@ -1,0 +1,5 @@
+# Pinned to the toolchain actually installed on this machine (verified 1.95.0).
+# sqlx 0.9 MSRV is 1.94 and argon2 0.6 is 1.85, so the whole stack is satisfied.
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]

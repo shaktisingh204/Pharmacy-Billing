@@ -1,0 +1,40 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/domain",
+    "crates/db",
+    "crates/services",
+    "crates/api",
+    "crates/jobs",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "UNLICENSED"
+
+[workspace.dependencies]
+rxbill-domain = { path = "crates/domain" }
+rxbill-db = { path = "crates/db" }
+rxbill-services = { path = "crates/services" }
+
+# Money is rust_decimal everywhere. bigdecimal encodes a SENTINEL on overflow
+# (silent corruption) and Postgres MONEY is 63-bit and lc_monetary-dependent.
+rust_decimal = { version = "1", features = ["serde-with-str", "macros"] }
+rust_decimal_macros = "1"
+chrono = { version = "0.4", features = ["serde"], default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+# Deliberately NOT panic = "abort": that disables tower-http's CatchPanicLayer,
+# and one panicking handler would take down the whole POS. Availability beats
+# binary size here.

@@ -1,0 +1,128 @@
+/* ============================================================================
+   Base layer. The shell is fixed: the page body NEVER scrolls, only designated
+   regions do. Nothing important may live below the fold on a 1366x768 panel.
+   ========================================================================== */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    height: 100%;
+    color-scheme: light;          /* light is the product */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;             /* fixed shell */
+    background: var(--bg-app);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: var(--font-body, 14px);
+    line-height: var(--leading-base);
+    letter-spacing: -0.006em;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root { height: 100%; }
+
+  h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.012em; }
+  p { margin: 0; }
+
+  /* Never 700. 600 at these sizes is the enterprise register. */
+  strong, b { font-weight: 600; }
+
+  button, input, select, textarea { font: inherit; color: inherit; }
+
+  /* --- Focus contract. Load-bearing in a keyboard-first app. ---
+     `outline: none` is BANNED and enforced by scripts/guardrails.sh. */
+  :focus { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--accent-9);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  /* Dense grid cells clip an offset ring, so they get an inset one instead. */
+  [data-focus-inset]:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--accent-9);
+  }
+
+  ::selection { background: var(--accent-3); color: var(--accent-11); }
+
+  /* Scrollbars: present but quiet. */
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: var(--radius-full);
+  }
+  *::-webkit-scrollbar-thumb:hover { background-color: var(--border-strong); background-clip: content-box; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* The highest-leverage typographic decision in a billing app.
+     Applied through <Money> / <Qty> to every money, qty, MRP, GST%, batch-no and
+     HSN cell. With proportional figures a rupee column visibly jitters as digits
+     change and totals stop aligning down the column. */
+  .num {
+    font-variant-numeric: tabular-nums slashed-zero;
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+    font-variant-ligatures: none;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Explicitly proportional. A display-size value must be able to opt OUT of any
+     inherited tabular setting; see <StatValue>. */
+  .tabular-nums-off {
+    font-variant-numeric: proportional-nums;
+    font-feature-settings: 'tnum' 0;
+  }
+
+  /* Mono is used ONLY for batch numbers, HSN, invoice numbers and receipt previews. */
+  .mono {
+    font-family: var(--font-mono);
+    font-variant-ligatures: none;
+    letter-spacing: 0;
+  }
+
+  .micro-label {
+    font-size: var(--text-2xs);
+    line-height: var(--leading-2xs);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--fg-subtle);
+  }
+
+  /* Cards get a border + the flattest shadow. Elevation is for things that float. */
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* The scroll region inside a pane. The pinned totals bar must never obscure the
+     focused row (WCAG 2.2 SC 2.4.11) — callers set --pinned-h. */
+  .scroll-region {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: var(--pinned-h, 0px);
+  }
+}
