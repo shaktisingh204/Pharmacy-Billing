@@ -21,9 +21,22 @@ export interface CartLine {
   qty: Qty
   freeQty: Qty
   discountPct: string
+  /**
+   * What the CHAIN's price list said for this medicine when the line was added.
+   *
+   * Kept beside the applied discount rather than folded into it, because the two
+   * answer different questions. The chain's 9% off Cipla is the shop's price and
+   * every cashier must be able to bill it; anything the operator adds on top is
+   * discretion, and that is what a discount ceiling governs. Collapsing them
+   * would either make the price list unbillable by junior staff or make the
+   * ceiling meaningless.
+   */
+  policyPct: string
   /** Set only when the pharmacist overrode FEFO with F3. */
   batchOverride?: Array<{ batchId: number; qty: Qty }>
   overrideReason?: string
+  /** A dispensing instruction for this line — "1-0-1 after food". */
+  note?: string
 }
 
 export type CartStage = 'CART' | 'PAYMENT'
@@ -33,26 +46,33 @@ interface CartState {
   byId: Record<string, CartLine>
   customerId: number | null
   billDiscountPct: string
+  /** A remark about the whole bill — delivery, who is collecting, what to tell them. */
+  billNote: string
   prescription: PrescriptionInput | null
   stage: CartStage
   /** The row the keyboard is on. Drives F3/F4/Ctrl+D without a mouse. */
   focusedLineId: string | null
   recalledToken: number | null
 
-  addLine(input: Omit<CartLine, 'lineId' | 'qty' | 'freeQty' | 'discountPct'> & Partial<Pick<CartLine, 'qty'>>): string
+  addLine(
+    input: Omit<CartLine, 'lineId' | 'qty' | 'freeQty' | 'discountPct' | 'policyPct'>
+      & Partial<Pick<CartLine, 'qty' | 'discountPct' | 'policyPct'>>,
+  ): string
   setQty(lineId: string, qty: Qty): void
   bumpQty(lineId: string, delta: number): void
   setFreeQty(lineId: string, qty: Qty): void
   setDiscount(lineId: string, pct: string): void
+  setLineNote(lineId: string, note: string): void
   setOverride(lineId: string, override: CartLine['batchOverride'], reason: string): void
   clearOverride(lineId: string): void
   removeLine(lineId: string): void
   focusLine(lineId: string | null): void
   setCustomer(id: number | null): void
   setBillDiscount(pct: string): void
+  setBillNote(note: string): void
   setPrescription(p: PrescriptionInput | null): void
   setStage(s: CartStage): void
-  loadLines(lines: CartLine[], customerId: number | null, token: number | null): void
+  loadLines(lines: CartLine[], customerId: number | null, token: number | null, billNote?: string): void
   reset(): void
 }
 
@@ -61,6 +81,7 @@ const EMPTY = {
   byId: {} as Record<string, CartLine>,
   customerId: null,
   billDiscountPct: '0',
+  billNote: '',
   prescription: null,
   stage: 'CART' as CartStage,
   focusedLineId: null,
@@ -84,11 +105,15 @@ export const useCart = create<CartState>((set, get) => ({
     }
     const lineId = nanoid(8)
     const line: CartLine = {
+      ...input,
       lineId,
       qty: input.qty ?? '1',
       freeQty: '0',
-      discountPct: '0',
-      ...input,
+      /* The list price is where a line STARTS. Zero when no list is in force —
+         which is a real state, not a default: a chain that has published nothing
+         has not priced anything, and pretending otherwise would invent a policy. */
+      discountPct: input.discountPct ?? input.policyPct ?? '0',
+      policyPct: input.policyPct ?? '0',
     }
     set((s) => ({ ids: [...s.ids, lineId], byId: { ...s.byId, [lineId]: line }, focusedLineId: lineId }))
     return lineId
@@ -118,6 +143,24 @@ export const useCart = create<CartState>((set, get) => ({
     const line = get().byId[lineId]
     if (!line) return
     set((s) => ({ byId: { ...s.byId, [lineId]: { ...line, discountPct } } }))
+  },
+
+  setLineNote(lineId, note) {
+    const line = get().byId[lineId]
+    if (!line) return
+    /*
+     * Stored EXACTLY as typed, and trimmed only at the wire.
+     *
+     * Trimming here instead looks harmless and makes a space untypeable: the
+     * field is controlled, so "1-0-1 " came back as "1-0-1" on the very
+     * keystroke that added the space and the next letter landed against it —
+     * "1-0-1after food". An emptied note is still REMOVED rather than kept as
+     * '', because an empty string reaches the receipt as a blank instruction
+     * line under the item.
+     */
+    const { note: _dropped, ...withoutNote } = line
+    const next: CartLine = note.trim() ? { ...line, note } : withoutNote
+    set((s) => ({ byId: { ...s.byId, [lineId]: next } }))
   },
 
   setOverride(lineId, batchOverride, overrideReason) {
@@ -150,14 +193,16 @@ export const useCart = create<CartState>((set, get) => ({
   focusLine(focusedLineId) { set({ focusedLineId }) },
   setCustomer(customerId) { set({ customerId }) },
   setBillDiscount(billDiscountPct) { set({ billDiscountPct }) },
+  setBillNote(billNote) { set({ billNote }) },
   setPrescription(prescription) { set({ prescription }) },
   setStage(stage) { set({ stage }) },
 
-  loadLines(lines, customerId, recalledToken) {
+  loadLines(lines, customerId, recalledToken, billNote = '') {
     set({
       ids: lines.map((l) => l.lineId),
       byId: Object.fromEntries(lines.map((l) => [l.lineId, l])),
       customerId,
+      billNote,
       recalledToken,
       stage: 'CART',
       focusedLineId: lines[0]?.lineId ?? null,

@@ -1,5 +1,5 @@
-import { PhaseStub } from '@/components/PhaseStub'
+import { UsersScreen } from './users/UsersScreen'
 
 export default function Users() {
-  return <PhaseStub to="/users" body="Admin, manager, pharmacist and cashier permissions" />
+  return <UsersScreen />
 }

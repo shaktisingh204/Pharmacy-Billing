@@ -300,6 +300,20 @@ export const SHORTCUTS: Shortcut[] = [
     id: 'bill.return', combo: 'NumpadMultiply', scope: 'global',
     group: 'Bill', label: 'Sale return against a bill', display: ['Num ×'],
   },
+  {
+    /* Alt+M, not an F-key: the F row is Marg muscle memory and every slot in it
+       already means something else in the software a shop is switching from.
+       Like F4, it is CONTEXTUAL — inside a cart row it writes that line's
+       dispensing instruction, everywhere else the bill's own remark — and the
+       billing scope resolves which from where focus is. */
+    id: 'bill.note', combo: 'alt+m', scope: 'billing',
+    group: 'Bill', label: 'Bill remark', display: ['Alt', 'M'],
+  },
+  {
+    id: 'bill.recent', combo: 'alt+r', scope: 'billing',
+    group: 'Bill', label: 'Recent bills — reprint without leaving the counter',
+    display: ['Alt', 'R'],
+  },
 
   // --- Search & entry ----------------------------------------------------
   {
@@ -366,6 +380,11 @@ export const SHORTCUTS: Shortcut[] = [
     /* Ctrl+D, never Alt+D: Chrome owns Alt+D for the address bar. */
     id: 'line.delete', combo: 'ctrl+d', scope: 'cart',
     group: 'Cart line', label: 'Delete the focused line', display: ['Ctrl', 'D'],
+  },
+  {
+    id: 'line.note', combo: 'alt+m', scope: 'cart',
+    group: 'Cart line', label: 'Dispensing instruction for this line',
+    display: ['Alt', 'M'],
   },
 
   // --- Payment -----------------------------------------------------------

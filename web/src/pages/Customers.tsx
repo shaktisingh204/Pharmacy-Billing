@@ -1,5 +1,5 @@
-import { PhaseStub } from '@/components/PhaseStub'
+import { CustomersScreen } from './customers/CustomersScreen'
 
 export default function Customers() {
-  return <PhaseStub to="/customers" body="Contact details, purchase history and outstanding credit" />
+  return <CustomersScreen />
 }

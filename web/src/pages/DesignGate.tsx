@@ -173,7 +173,7 @@ export default function DesignGate() {
                 <Kbd
                   className={
                     variant === 'primary' || variant === 'danger'
-                      ? 'border-white/25 bg-white/15 text-white'
+                      ? 'border-transparent bg-white text-accent-11'
                       : undefined
                   }
                 >
@@ -214,7 +214,7 @@ export default function DesignGate() {
           )}
           {state === 'error' && <ErrorState code="STOCK_INSUFFICIENT" message="Only 3 units of batch B-2291 remain." onRetry={() => {}} />}
           {state === 'offline' && <OfflineState queued={3} />}
-          {state === 'denied' && <PermissionDenied needs="reports.view_cost" />}
+          {state === 'denied' && <PermissionDenied needs="reports.margin" />}
         </Card>
       </Section>
 

@@ -1,12 +1,23 @@
-import { useSyncExternalStore } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useCallback, useState, useSyncExternalStore } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { useBrand } from '@/brand/useBrand'
+import { useQuery } from '@tanstack/react-query'
 import {
-  Bell, ChevronsUpDown, CircleUser, Clock, LifeBuoy, Search, Store, Wifi, WifiOff,
+  ChevronRight, ChevronsUpDown, CircleUser, Clock, LifeBuoy, Search, Smartphone, Wifi, WifiOff,
 } from 'lucide-react'
 import { NAV_GROUPS } from '@/lib/nav'
 import type { NavItem } from '@/lib/nav'
+import { useApi } from '@/api'
+import { qk } from '@/api/queryKeys'
 import { Kbd } from '@/components/ui/Kbd'
+import { formatCombo } from '@/lib/keys'
 import { cn } from '@/lib/cn'
+import { useHotkeys } from '@/hooks/useHotkeys'
+import { HelpPanel } from '@/components/HelpPanel'
+import { ShortcutHelp } from '@/components/ShortcutHelp'
+import { AttentionBell } from '@/components/AttentionBell'
+import { StoreSwitcher } from '@/components/StoreSwitcher'
 
 /**
  * Below 1280px the 232px sidebar costs the working pane more width than the
@@ -14,11 +25,29 @@ import { cn } from '@/lib/cn'
  */
 const WIDE_QUERY = '(min-width: 1280px)'
 
-const STORE = { name: 'Sanjeevani Medical Store', branch: 'MG Road' } as const
+/**
+ * Phone width.
+ *
+ * Not "narrow": a shrunken desktop window is somebody resizing, and bouncing
+ * them somewhere else mid-task would be obnoxious. This is the width at which
+ * the counter layouts genuinely stop working, and at which the owner's own
+ * surface is the better answer.
+ */
+const PHONE_QUERY = '(max-width: 640px)'
+
+/** The combo the cheat sheet advertises for the same action. Never a second spelling. */
+const PALETTE_COMBO = formatCombo('ctrl+k')
+
 const OPERATOR = { name: 'Akib Ahamed', initials: 'AA', role: 'Owner' } as const
 
 function subscribeWide(onChange: () => void) {
   const mql = window.matchMedia(WIDE_QUERY)
+  mql.addEventListener('change', onChange)
+  return () => mql.removeEventListener('change', onChange)
+}
+
+function subscribePhone(onChange: () => void) {
+  const mql = window.matchMedia(PHONE_QUERY)
   mql.addEventListener('change', onChange)
   return () => mql.removeEventListener('change', onChange)
 }
@@ -39,31 +68,73 @@ function subscribeOnline(onChange: () => void) {
 export function AppShell() {
   const { pathname } = useLocation()
   const wide = useSyncExternalStore(subscribeWide, () => window.matchMedia(WIDE_QUERY).matches)
+  const phone = useSyncExternalStore(subscribePhone, () => window.matchMedia(PHONE_QUERY).matches)
   // The POS owns its width, so /billing collapses the sidebar at any viewport.
   const collapsed = pathname.startsWith('/billing') || !wide
 
+  const [helpOpen, setHelpOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+
+  /* Mounted in the SHELL, not in a screen.
+     `help.open` is declared `scope: 'global'` in `lib/keys`, but the cheat sheet
+     was only ever mounted inside the billing screen — so `?` did nothing on ten
+     of the eleven pages while every one of them advertised it. Bound once here,
+     it works everywhere the shortcut says it does. The billing screen keeps its
+     own copy because it passes its own scope, and a second sheet cannot open
+     over the first: a modal is exclusive. */
+  useHotkeys('global', {
+    'help.open': () => setShortcutsOpen(true),
+  }, { enabled: !pathname.startsWith('/billing') })
+
+  const openShortcuts = useCallback(() => setShortcutsOpen(true), [])
+
   return (
     <div className="flex h-full w-full overflow-hidden bg-app">
-      <Sidebar collapsed={collapsed} />
+      <Sidebar collapsed={collapsed} onHelp={() => setHelpOpen(true)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
+        {/* OFFERED, never forced.
+            A redirect would break every deep link somebody taps out of a
+            WhatsApp message, and an owner who genuinely wants the reports on
+            their phone is allowed to have them — cramped, but theirs. So the
+            shell points at the better surface and gets out of the way. */}
+        {phone && (
+          <Link
+            to="/m"
+            className="flex shrink-0 items-center gap-2 border-b border-border-subtle bg-accent-3 px-4 py-2 text-sm font-medium text-accent-11"
+          >
+            <Smartphone size={15} aria-hidden />
+            <span className="min-w-0 flex-1">Reading on a phone? Open the owner view</span>
+            <ChevronRight size={15} aria-hidden />
+          </Link>
+        )}
         <main className="min-w-0 flex-1 overflow-hidden bg-app">
-          <Outlet />
+          {/* Scoped to the routed screen: a screen that throws is replaced by an
+              error state while the shell, the nav and billing stay usable.
+              Keyed on the path so navigating away clears the error. */}
+          <ErrorBoundary resetKey={pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
+
+      <HelpPanel open={helpOpen} onOpenChange={setHelpOpen} onShortcuts={openShortcuts} />
+      {/* Scope 'global': the shell has no screen scope of its own, and the sheet
+          lists everything global plus whatever the active screen adds. */}
+      <ShortcutHelp open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} scope="global" />
     </div>
   )
 }
 
 /* ------------------------------------------------------------------ sidebar */
 
-function Sidebar({ collapsed }: { collapsed: boolean }) {
+function Sidebar({ collapsed, onHelp }: { collapsed: boolean; onHelp: () => void }) {
   return (
     <div
-      className={cn(
-        'flex h-full shrink-0 flex-col border-r border-border bg-surface',
-        'transition-[width] duration-[var(--dur-base)] ease-[var(--ease)]',
-      )}
+      // Width is switched, never transitioned: animating it reflows the whole
+      // working pane for the length of the transition, and the one moment it
+      // fires is the entry into /billing.
+      className="flex h-full shrink-0 flex-col border-r border-border bg-surface"
       style={{ width: collapsed ? 'var(--rail-w)' : 'var(--sidebar-w)' }}
       data-collapsed={collapsed}
     >
@@ -75,7 +146,7 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
             {collapsed ? (
               // Collapsed, a group label would be an unreadable stack of glyphs.
               // The grouping still has to survive, so it becomes a rule.
-              i > 0 ? <div aria-hidden className="mx-auto my-2 h-px w-6 bg-border-subtle" /> : null
+              i > 0 ? <div aria-hidden className="mx-auto my-2 h-px w-6 bg-border" /> : null
             ) : (
               <div className={cn('micro-label px-2.5 pb-1', i > 0 && 'pt-4')}>{group.label}</div>
             )}
@@ -91,8 +162,12 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
       </nav>
 
       <div className="shrink-0 border-t border-border-subtle p-2">
+        {/* Was a <button> with no onClick — a control that did nothing, which
+            is worse than an absent one because it teaches the operator that
+            clicking here has no effect. */}
         <button
           type="button"
+          onClick={onHelp}
           title={collapsed ? 'Help & Support' : undefined}
           className={cn(
             'flex h-[34px] w-full items-center rounded-[var(--radius-md)] text-base',
@@ -109,9 +184,13 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
           )}
         </button>
 
-        <button
-          type="button"
-          aria-label={`${OPERATOR.name}, ${OPERATOR.role} — account menu`}
+        {/* Goes to Users & Roles, which is where this person's role, their
+            discount and refund ceilings, and every override they have needed
+            actually live. It was labelled "account menu" and opened nothing —
+            and a menu that does not exist is a worse promise than a link. */}
+        <NavLink
+          to="/users"
+          aria-label={`${OPERATOR.name}, ${OPERATOR.role} — open Users & Roles`}
           title={collapsed ? `${OPERATOR.name} · ${OPERATOR.role}` : undefined}
           className={cn(
             'mt-1 flex w-full items-center rounded-[var(--radius-md)] p-1.5 text-start',
@@ -141,13 +220,14 @@ function Sidebar({ collapsed }: { collapsed: boolean }) {
               <ChevronsUpDown size={14} aria-hidden className="shrink-0 text-fg-subtle" />
             </>
           )}
-        </button>
+        </NavLink>
       </div>
     </div>
   )
 }
 
 function Brand({ collapsed }: { collapsed: boolean }) {
+  const brand = useBrand()
   return (
     <div
       className={cn(
@@ -159,22 +239,30 @@ function Brand({ collapsed }: { collapsed: boolean }) {
       <span
         aria-hidden
         className={cn(
-          'grid size-7 shrink-0 place-items-center rounded-[var(--radius-md)]',
-          'bg-accent-9 text-2xs font-semibold tracking-tight text-fg-on-accent',
+          'grid size-7 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-md)]',
+          brand.logoUrl ? 'bg-surface' : 'bg-accent-10 text-2xs font-semibold tracking-tight text-fg-on-accent',
         )}
       >
-        Rx
+        {/* A reseller supplies a mark or a logo, never a code change — the whole
+            point of white-labelling is that nobody has to fork this file. */}
+        {brand.logoUrl
+          ? <img src={brand.logoUrl} alt="" className="size-full object-contain" />
+          : brand.markText}
       </span>
       {collapsed ? (
-        <span className="sr-only">RxBill — Pharmacy POS</span>
+        <span className="sr-only">
+          {brand.productName}{brand.tagline ? ` — ${brand.tagline}` : ''}
+        </span>
       ) : (
         <span className="min-w-0">
           <span className="block truncate text-base font-semibold leading-[18px] text-fg">
-            RxBill
+            {brand.productName}
           </span>
-          <span className="block truncate text-2xs leading-[14px] text-fg-subtle">
-            Pharmacy POS
-          </span>
+          {brand.tagline ? (
+            <span className="block truncate text-2xs leading-[14px] text-fg-subtle">
+              {brand.tagline}
+            </span>
+          ) : null}
         </span>
       )}
     </div>
@@ -221,7 +309,7 @@ function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
               className={cn(
                 'num ms-auto inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center',
                 'rounded-[var(--radius-full)] px-1.5 text-2xs font-medium',
-                isActive ? 'bg-accent-9 text-fg-on-accent' : 'bg-subtle text-fg-muted',
+                isActive ? 'bg-accent-10 text-fg-on-accent' : 'bg-subtle text-fg-muted',
               )}
             >
               {item.badge}
@@ -236,14 +324,19 @@ function NavItemLink({ item, collapsed }: { item: NavItem; collapsed: boolean })
 /* ------------------------------------------------------------------ top bar */
 
 function TopBar() {
+  const api = useApi()
   const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine)
+  // The chip only guards against billing into the wrong location if it reads the
+  // store that is actually being billed against. A literal here would keep
+  // reassuring the operator after the profile changed under it.
+  const { data: store } = useQuery({ queryKey: qk.store, queryFn: () => api.getStore() })
 
   return (
     <header
       className="flex shrink-0 items-center gap-3 border-b border-border bg-surface px-3"
       style={{ height: 'var(--topbar-h)' }}
     >
-      <div className="relative min-w-0 flex-1 md:max-w-[360px]">
+      <div className="relative min-w-0 flex-1 max-w-[360px]">
         <Search
           size={14}
           aria-hidden
@@ -256,20 +349,21 @@ function TopBar() {
           autoComplete="off"
           spellCheck={false}
           className={cn(
-            'h-8 w-full rounded-[var(--radius-md)] border border-border bg-inset ps-8 pe-14',
+            'h-8 w-full rounded-[var(--radius-md)] border border-border bg-inset ps-8 pe-20',
             'text-sm text-fg placeholder:text-fg-subtle hover:border-border-strong focus:bg-surface',
           )}
         />
-        <Kbd className="pointer-events-none absolute end-2 top-1/2 -translate-y-1/2">⌘K</Kbd>
+        {/* Ctrl, not ⌘: the target hardware is a Windows counter panel, and
+            SHORTCUTS['palette.open'] is the one spelling of this combo. */}
+        <span className="pointer-events-none absolute end-2 top-1/2 flex -translate-y-1/2 gap-1">
+          {PALETTE_COMBO.map((part) => <Kbd key={part}>{part}</Kbd>)}
+        </span>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        {/* The store chip is ALWAYS visible so nobody bills into the wrong location. */}
-        <div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-subtle px-2.5 py-1">
-          <Store size={14} className="text-accent-9" aria-hidden />
-          <span className="text-sm font-medium text-fg">{STORE.name}</span>
-          <span className="mono text-2xs text-fg-subtle">{STORE.branch}</span>
-        </div>
+      <div className="ms-auto flex shrink-0 items-center gap-2">
+        {/* Visible on every screen so nobody bills into the wrong location. Absent
+            rather than guessed for the one frame before the profile resolves. */}
+        {store ? <StoreSwitcher store={store} /> : null}
 
         <span
           role="status"
@@ -286,31 +380,15 @@ function TopBar() {
           <Clock size={12} aria-hidden /> No open shift
         </span>
 
-        <button
-          type="button"
-          aria-label="Notifications, unread"
-          className={cn(
-            'relative grid size-8 place-items-center rounded-[var(--radius-md)] text-fg-muted',
-            'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-hover hover:text-fg',
-          )}
-        >
-          <Bell size={16} aria-hidden />
-          <span
-            aria-hidden
-            className="absolute right-1.5 top-1.5 size-1.5 rounded-[var(--radius-full)] bg-danger-9 ring-2 ring-surface"
-          />
-        </button>
+        <AttentionBell />
 
-        <button
-          type="button"
-          className={cn(
-            'flex items-center gap-2 rounded-[var(--radius-md)] px-2 py-1 text-sm text-fg-muted',
-            'transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] hover:bg-hover hover:text-fg',
-          )}
-        >
-          <CircleUser size={16} aria-hidden />
-          Counter 1
-        </button>
+        {/* A SPAN, not a button. Which till this is, stated — the same kind of
+            fact as the two chips beside it. It was a button with no onClick,
+            and a control that does nothing teaches the operator that clicking
+            here has no effect, which is a lesson that spreads. */}
+        <span className="flex items-center gap-1.5 rounded-[var(--radius-md)] bg-subtle px-2 py-1 text-2xs font-medium text-fg-muted">
+          <CircleUser size={12} aria-hidden /> Counter 1
+        </span>
       </div>
     </header>
   )

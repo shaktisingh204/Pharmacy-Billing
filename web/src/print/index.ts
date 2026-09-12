@@ -25,3 +25,5 @@ export {
 } from './ThermalReceipt'
 
 export { TaxInvoiceA4 } from './TaxInvoiceA4'
+
+export { ReportSheet, MAX_PRINT_ROWS } from './ReportSheet'

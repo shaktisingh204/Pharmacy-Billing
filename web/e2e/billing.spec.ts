@@ -14,9 +14,12 @@ test.describe('Billing / POS', () => {
 
   test('/ recalls focus to search without leaking the slash', async ({ page }) => {
     const search = page.getByRole('combobox', { name: 'Medicine search' })
-    // Move focus OUT of the input first: while it is focused, '/' must type
-    // normally — a search box you cannot type a slash into is broken.
-    await page.keyboard.press('Tab')
+    // Focus has to leave TEXT ENTRY, not merely leave this input: '/' is
+    // deliberately suppressed inside any text field, so tabbing into the customer
+    // search next door would only prove that rule. A button is a fair test.
+    // Not Hold — it is disabled on an empty cart and a disabled control cannot
+    // take focus. The prescriber button is always enabled.
+    await page.getByRole('button', { name: /prescriber/i }).first().focus()
     await expect(search).not.toBeFocused()
 
     await page.keyboard.press('/')
@@ -51,8 +54,10 @@ test.describe('Billing / POS', () => {
     await page.keyboard.press('Enter')
     await expect(page.locator('[data-line-id]')).toHaveCount(2)
 
-    const total = page.getByText('Total', { exact: true }).locator('..').locator('.num')
-    await expect(total).not.toHaveText('0.00')
+    // The grand total is a display-size value and deliberately does NOT wear
+    // `.num` — tabular figures make a large number look gappy — so it is located
+    // by its test id rather than by that class.
+    await expect(page.getByTestId('total-net')).not.toHaveText(/^0\.00$/)
 
     await page.keyboard.press('Control+Enter')
     await expect(page.getByRole('heading', { name: 'Payment' })).toBeVisible()

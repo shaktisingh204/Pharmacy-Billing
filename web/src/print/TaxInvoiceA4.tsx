@@ -1,5 +1,6 @@
-import type { QuoteLine, SaleInvoice, StoreProfile } from '@contract'
+import type { BrandProfile, QuoteLine, SaleInvoice, StoreProfile } from '@contract'
 import { formatAmount, formatExpiry, formatPercent, formatQty } from '@/lib/format'
+import { documentCredit } from '@/brand/applyBrand'
 import { amountInWords, isZeroAmount } from './ThermalReceipt'
 import './print.css'
 
@@ -76,14 +77,17 @@ function Field({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function TaxInvoiceA4({ invoice, store, preview = false }: {
+export function TaxInvoiceA4({ invoice, store, brand, preview = false }: {
   invoice: SaleInvoice
   store: StoreProfile
+  /** The reseller's branding. Absent prints no credit line — see ThermalReceipt. */
+  brand?: BrandProfile | null
   /** Show the sheet on screen. The attribute has to sit on the sheet's own
       root, so a wrapper cannot supply it — see index.ts. */
   preview?: boolean
 }) {
   const { quote } = invoice
+  const credit = documentCredit(brand)
   const columns = invoice.interState ? COLUMNS_INTER : COLUMNS_INTRA
 
   return (
@@ -282,6 +286,11 @@ export function TaxInvoiceA4({ invoice, store, preview = false }: {
         described and that all particulars are true and correct.
         {invoice.status === 'VOIDED' ? ' THIS INVOICE HAS BEEN VOIDED.' : ''}
       </div>
+
+      {/* Below the declaration, never inside it: the declaration is the shop's
+          legal statement about its own goods and a software credit has no place
+          in that sentence. */}
+      {credit ? <div className="rx-a4__credit">{credit}</div> : null}
     </div>
   )
 }

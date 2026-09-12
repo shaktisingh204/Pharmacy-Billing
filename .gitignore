@@ -33,3 +33,4 @@ pnpm-debug.log*
 /web/playwright-report
 /web/test-results
 /web/blob-report
+/test-results

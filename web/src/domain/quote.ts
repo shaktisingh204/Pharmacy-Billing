@@ -231,6 +231,9 @@ export function computeQuote(req: QuoteRequest, ctx: QuoteContext): Quote {
       igst: D.toStr(fold((a) => a.igst), 2),
       lineTotal: D.toStr(fold((a) => a.lineTotal), 2),
       manualBatch: w.manual,
+      /* Echoed, never interpreted. The dispensing instruction belongs to the
+         line the operator typed it on, and the receipt renders it from here. */
+      ...(w.input.note ? { note: w.input.note } : {}),
     }
   })
 

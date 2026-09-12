@@ -15,7 +15,12 @@ const button = cva(
     variants: {
       variant: {
         primary:
-          'bg-accent-9 text-fg-on-accent border border-accent-9 shadow-xs hover:bg-accent-10 hover:border-accent-10 active:bg-accent-11',
+          /* accent-10, not accent-9. White text on the brand's own --accent-9
+             measures 3.74:1 — under the 4.5:1 AA floor for body text, which is
+             what a button label is. --accent-9 keeps its job as the identity
+             colour on rings, bars and borders, where 3:1 (SC 1.4.11) is the
+             right bar and it clears it. Text sits one step darker. */
+          'bg-accent-10 text-fg-on-accent border border-accent-10 shadow-xs hover:bg-accent-11 hover:border-accent-11 active:bg-accent-11',
         secondary:
           'bg-surface text-fg border border-border shadow-xs hover:bg-hover hover:border-border-strong',
         ghost: 'bg-transparent text-fg-muted hover:bg-hover hover:text-fg',

@@ -1,5 +1,5 @@
-import { PhaseStub } from '@/components/PhaseStub'
+import { InventoryScreen } from './inventory/InventoryScreen'
 
 export default function Inventory() {
-  return <PhaseStub to="/inventory" body="Batch-wise stock, expiry buckets, adjustments and movements" />
+  return <InventoryScreen />
 }

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { CloudOff, Lock, RefreshCw, TriangleAlert } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { Permission } from '@contract'
+import { PERMISSION_CATALOGUE } from '@/api/users'
 import { Button } from '@/components/ui/Button'
 import { Kbd } from '@/components/ui/Kbd'
 import { cn } from '@/lib/cn'
@@ -83,7 +85,7 @@ export function EmptyState({
       {actionLabel ? (
         <Button variant="primary" onClick={onAction}>
           {actionLabel}
-          {shortcut ? <Kbd className="border-white/25 bg-white/15 text-white">{shortcut}</Kbd> : null}
+          {shortcut ? <Kbd className="border-transparent bg-white text-accent-11">{shortcut}</Kbd> : null}
         </Button>
       ) : null}
     </Shell>
@@ -111,10 +113,10 @@ export function ErrorState({
     >
       <TriangleAlert size={32} strokeWidth={1.75} className="text-danger-9" aria-hidden />
       <div className="text-lg font-semibold text-danger-11">Something went wrong</div>
-      <div className="max-w-[52ch] text-base text-danger-11/85">
+      <div className="max-w-[52ch] text-base text-danger-11">
         {message ?? 'The request could not be completed.'}
       </div>
-      {code ? <code className="mono text-xs text-danger-11/70">{code}</code> : null}
+      {code ? <code className="mono text-xs text-danger-11">{code}</code> : null}
       {onRetry ? (
         <Button variant="secondary" onClick={onRetry}>
           <RefreshCw /> Retry
@@ -128,7 +130,7 @@ export function OfflineState({ queued }: { queued?: number }) {
   return (
     <Shell
       icon={CloudOff}
-      tone="var(--warning-9)"
+      tone="var(--warning-11)"
       title="Working offline"
       body={
         queued
@@ -140,14 +142,30 @@ export function OfflineState({ queued }: { queued?: number }) {
   )
 }
 
-export function PermissionDenied({ needs }: { needs?: string }) {
+/**
+ * `needs` is a `Permission`, NOT a string, and that is the entire fix here.
+ *
+ * As a string, six screens had each invented their own — `sales.read`,
+ * `customers.read`, `inventory.read`, and `purchase.read` beside a
+ * `purchases.read` on the next page — none of which exist in the roster. The
+ * screen told the reader to ask a manager for a permission with no checkbox on
+ * the Users page, which is worse than saying nothing: it sends someone to ask
+ * for something that cannot be granted, and it looks authoritative doing it.
+ * Typed, every one of those is a compile error and a seventh cannot be written.
+ *
+ * The message names the permission the way the Users page LABELS it, with the
+ * id in brackets, because the reader is being sent to a grid where the label is
+ * what they will actually be looking for.
+ */
+export function PermissionDenied({ needs }: { needs?: Permission }) {
+  const spec = needs === undefined ? undefined : PERMISSION_CATALOGUE.find((p) => p.id === needs)
   return (
     <Shell
       icon={Lock}
       title="You do not have access to this"
       body={
-        needs
-          ? `This screen requires the ${needs} permission. Ask a manager to grant it.`
+        spec
+          ? `This screen needs "${spec.label}" under ${spec.area} (${spec.id}). Ask a manager to grant it on the Users page.`
           : 'Ask a manager to grant access to this screen.'
       }
       testid="state-permission-denied"

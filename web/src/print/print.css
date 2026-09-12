@@ -112,6 +112,11 @@
 .rx-print__gap { height: 1.5mm; }
 
 .rx-print__words { margin-top: 1mm; }
+/* The reseller's line sits under the shop's own note and must read as
+   subordinate to it — the customer's shop is the sender of this document, the
+   software vendor is a credit. Grey rather than smaller: thermal paper at 8dpmm
+   loses a font-size step to the head before it loses contrast. */
+.rx-print__muted { color: #555; }
 
 .rx-print__qr {
   margin: 2mm 0 1mm;
@@ -251,15 +256,155 @@
 
 .rx-a4__words { margin-top: 2mm; font-size: 8pt; }
 
+/* The software credit. Smaller and grey, centred, and set apart from the
+   declaration above it — the shop is the author of this invoice and the vendor
+   is a footnote to it, which is the visual hierarchy a white-label buyer is
+   paying for. */
+.rx-a4__credit {
+  margin-top: 2mm;
+  text-align: center;
+  font-size: 6.5pt;
+  color: #666;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ------------------------------------------------------------- report ---- */
+
+/* A report is the third sheet: not a receipt and not an invoice, but a document
+   somebody files in a folder or hands to an inspector. It is LANDSCAPE because
+   the widest of them carries sixteen columns, and portrait would either drop
+   columns or shrink them below reading size. */
+.rx-print--report {
+  box-sizing: border-box;
+  width: 277mm;                  /* A4 landscape minus the 10mm @page margins */
+  margin: 0 auto;
+  font-family: var(--print-sans);
+  /* Points, not pixels: this sheet is measured against a physical page. */
+  font-size: 8pt;
+  line-height: 1.3;
+}
+
+.rx-rep__head { border-bottom: 0.8pt solid var(--print-ink); padding-bottom: 2mm; }
+
+.rx-rep__shop {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  font-size: 7.5pt;
+}
+
+.rx-rep__name { font-weight: 700; }
+
+.rx-rep__title {
+  margin: 1.5mm 0 0;
+  font-size: 15pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.rx-rep__question { margin: 0.5mm 0 0; font-size: 8.5pt; }
+
+.rx-rep__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm 8mm;
+  margin: 2mm 0 2.5mm;
+  font-size: 7.5pt;
+}
+
+.rx-rep__facts dt {
+  display: inline;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 6.5pt;
+}
+
+.rx-rep__facts dd { display: inline; margin: 0 0 0 1.5mm; }
+
+.rx-rep__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 7pt;
+}
+
+.rx-rep__table th,
+.rx-rep__table td {
+  border: 0.4pt solid var(--print-ink);
+  padding: 0.8mm 1.2mm;
+  vertical-align: top;
+  overflow-wrap: anywhere;       /* a long brand name wraps inside its cell */
+}
+
+.rx-rep__table th {
+  font-size: 6.5pt;
+  font-weight: 600;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+
+/* Repeated on every page: a continuation sheet with no column heads is not a
+   readable report, and these run to twenty pages. */
+.rx-rep__table thead { display: table-header-group; }
+.rx-rep__table tfoot { display: table-footer-group; }
+.rx-rep__table tbody tr { break-inside: avoid; page-break-inside: avoid; }
+
+.rx-rep__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums slashed-zero;
+  white-space: nowrap;
+}
+
+/* A band header has to be unmistakable in two inks: bold, and ruled above. */
+.rx-rep__bandhead td {
+  font-weight: 700;
+  border-top: 0.8pt solid var(--print-ink);
+}
+
+.rx-rep__table tfoot td { font-weight: 700; border-top: 0.8pt solid var(--print-ink); }
+
+.rx-rep__cut { margin-top: 2mm; font-size: 7.5pt; font-weight: 600; }
+
+.rx-rep__block {
+  margin-top: 3mm;
+  font-size: 7pt;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.rx-rep__block h2 {
+  margin: 0 0 1mm;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rx-rep__block p { margin: 0 0 0.8mm; }
+
+/* The software credit, subordinate to the shop's own name at the top. */
+.rx-rep__credit {
+  margin-top: 3mm;
+  padding-top: 1.5mm;
+  border-top: 0.4pt solid var(--print-ink);
+  text-align: center;
+  font-size: 6.5pt;
+  color: #666;
+}
+
 /* -------------------------------------------------------------- paper ---- */
 
 @media print {
   /* Named pages: the sheet picks its own paper via `page:` below. */
   @page thermal { size: 80mm auto; margin: 0; }
   @page a4 { size: A4; margin: 12mm; }
+  @page report { size: A4 landscape; margin: 10mm; }
 
   .rx-print--thermal { page: thermal; }
   .rx-print--a4 { page: a4; }
+  .rx-print--report { page: report; }
 
   /* base.css fixes the shell to the viewport and stops the body scrolling.
      On paper the document has to be as long as it needs to be. */

@@ -67,6 +67,24 @@ export class SearchIndex {
     }
   }
 
+  /**
+   * Patch the batches a sale touched, in place.
+   *
+   * A sale changes the quantity on a handful of batches. Re-reading the whole
+   * catalogue to learn that costs a full IndexedDB scan on the one code path the
+   * operator is actually waiting on — and it scales with the catalogue rather
+   * than with the bill.
+   */
+  updateBatches(changed: readonly Batch[]): void {
+    for (const next of changed) {
+      const list = this.batchesByMedicine.get(next.medicineId)
+      if (!list) continue
+      const i = list.findIndex((b) => b.id === next.id)
+      if (i >= 0) list[i] = next
+      else list.push(next)
+    }
+  }
+
   batchesFor(medicineId: number): Batch[] {
     return this.batchesByMedicine.get(medicineId) ?? []
   }

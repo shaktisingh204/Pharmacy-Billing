@@ -1,5 +1,5 @@
-import { PhaseStub } from '@/components/PhaseStub'
+import { MedicinesScreen } from './medicines/MedicinesScreen'
 
 export default function Medicines() {
-  return <PhaseStub to="/medicines" body="Brand and generic master, packs, HSN, schedule and barcodes" />
+  return <MedicinesScreen />
 }

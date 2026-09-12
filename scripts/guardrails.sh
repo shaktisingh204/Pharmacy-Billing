@@ -67,5 +67,78 @@ $hits"
   fi
 fi
 
-if [ "$fail" -eq 0 ]; then echo "guardrails: all checks passed"; fi
+if [ "$fail" -eq 0 ]; then 
+# ------------------------------------------------------- service worker -----
+# The worker decides what to cache by matching asset FILENAMES, which couples it
+# to the bundler's hash format — invisibly. It has been wrong once already: a
+# lowercase-hex pattern against Rolldown's base64-ish hashes matched nothing, so
+# everything worked online and the first offline boot found an empty cache.
+# Only checked when a build exists; `npm run build` then this is the full check.
+if [ -d web/dist/assets ]; then
+  missed=$(node -e '
+    const fs = require("fs");
+    const sw = fs.readFileSync("web/public/sw.js", "utf8");
+    const m = /const isHashedAsset[\s\S]*?&&\s*(\/.*\/)\.test/.exec(sw);
+    if (!m) { console.log("PATTERN_NOT_FOUND"); process.exit(0); }
+    const re = new RegExp(m[1].slice(1, m[1].lastIndexOf("/")));
+    process.stdout.write(
+      fs.readdirSync("web/dist/assets").filter((n) => !re.test("/assets/" + n)).join(", "),
+    );
+  ' 2>/dev/null)
+  if [ -n "$missed" ]; then
+    report "the service worker would not cache every built asset" \
+      "An offline boot would find these missing from the cache:
+$missed"
+  fi
+fi
+
+# --------------------------------------------------- float money arithmetic --
+# `.toFixed(` was never the only way to do money in floats, and the gap was real:
+# a dashboard "chain total" — a figure an owner quotes — summed branch takings as
+# `acc.sales + Number(b.sales)` and passed every check here.
+#
+# Scoped to the ACCUMULATOR shape (`sum +`, `acc.field +`, `total +`) rather than
+# to `Number(` generally: a sort comparator subtracting two `Number()`s produces
+# an ordering, not money, and `2000 + Number(yy)` is a year. Those are correct and
+# a rule that flags them is a rule people switch off.
+if hits=$(grep -rnE '(sum|acc|total|running)[A-Za-z0-9_.]*[[:space:]]*\+[[:space:]]*Number\(' \
+    --include='*.ts' --include='*.tsx' web/src 2>/dev/null \
+    | grep -v '\.test\.' | code_only); then
+  report "money summed as JS floats" \
+    "Sum through src/domain/decimal (D.sum/D.add) and convert once with D.toNumber at a
+chart or pixel boundary. Found:
+$hits"
+fi
+
+# ------------------------------------------------- text painted below AA --
+# An axe sweep of all thirteen routes found 57 contrast failures on the
+# dashboard alone. Two patterns caused most of them, and both look harmless in a
+# diff, so they are checked here rather than waiting for the slow suite.
+#
+# 1. A `-9` step used as a CHIP TONE. The -9 steps are FILLS — they clear the 3:1
+#    bar SC 1.4.11 sets for a non-text boundary, and nothing more. `Chip` paints
+#    its tone as text on a 12% tint of itself, so a -9 tone renders 12px words at
+#    2.8-4.4:1. The -11 steps exist for exactly this and are verified against
+#    both grounds in tokens.css.
+if hits=$(grep -rnE "tone[:=][[:space:]]*[\"']var\\(--(danger|warning|success|info)-9\\)" \
+    --include='*.ts' --include='*.tsx' web/src 2>/dev/null | code_only); then
+  report "a fill colour used as chip text" \
+    "Chip tones are TEXT. Use --<semantic>-11, which is contrast-verified for it.
+A -9 step is for fills, borders and icons. Found:
+$hits"
+fi
+
+# 2. An alpha modifier on a TEXT colour. `text-danger-11/70` is a token that was
+#    measured against its background and then faded 30% away from it — every one
+#    of these landed between 2.3:1 and 4.3:1. Dimming text is what --fg-muted and
+#    --fg-subtle are for, and both clear AA.
+if hits=$(grep -rnE 'text-(fg|accent|danger|warning|success|info)[a-z0-9-]*/[0-9]+' \
+    --include='*.tsx' web/src 2>/dev/null | code_only); then
+  report "text faded below its verified contrast" \
+    "An alpha modifier undoes the contrast the token was chosen for. Use
+--fg-muted or --fg-subtle for quieter text; both are verified AA. Found:
+$hits"
+fi
+
+echo "guardrails: all checks passed"; fi
 exit "$fail"

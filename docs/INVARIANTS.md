@@ -25,7 +25,7 @@ turning up in a GST filing eighteen months later.
 | I14 | Stock never goes negative | `CHECK (qty_on_hand >= 0)` + conditional-`UPDATE` decrement as the ONLY primitive | two-racing-transactions test | _Phase 5_ |
 | I15 | FEFO never uses `SKIP LOCKED` | `FOR NO KEY UPDATE` on sorted, deduped batch ids | code review + concurrency test | _Phase 5_ |
 | I16 | The stock ledger is append-only | `REVOKE UPDATE, DELETE` + `RAISE` trigger | `invariants.sql` | _Phase 4_ |
-| I17 | Ledger reconciles to `batches.qty_on_hand` | Nightly job; surfaced as a UI health chip | reconciliation returns zero rows | _Phase 8_ |
+| I17 | Ledger reconciles to `batches.qty_on_hand` | `api/health.reconcileStock`, surfaced in Help & Support as a health chip | `health.test.ts`; an e2e asserts the seeded book balances, so a seed that breaks the ledger fails CI | **built** |
 | I18 | Invoice numbers are gapless per (store, FY, terminal) | `doc_series` counter row, `UPDATE … RETURNING` taken LAST before COMMIT | 50-concurrent-sales window-function assertion | _Phase 5_ |
 | I19 | Landed cost divides by (paid + free) | Generated column | 10+1 scheme golden fixture | _Phase 4_ |
 | I20 | Posted documents are immutable | No update path; corrections are credit/debit notes | route × role test; no edit affordance in the UI | _Phase 5_ |

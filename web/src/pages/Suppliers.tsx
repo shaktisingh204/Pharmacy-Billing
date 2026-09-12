@@ -1,5 +1,5 @@
-import { PhaseStub } from '@/components/PhaseStub'
+import { SuppliersScreen } from './suppliers/SuppliersScreen'
 
 export default function Suppliers() {
-  return <PhaseStub to="/suppliers" body="Distributors, outstanding balances and ageing" />
+  return <SuppliersScreen />
 }

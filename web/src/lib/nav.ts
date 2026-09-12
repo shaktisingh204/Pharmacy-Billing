@@ -80,7 +80,7 @@ export const NAV_GROUPS: NavGroup[] = [
 ]
 
 /**
- * Flat view of the same entries. PhaseStub resolves a route's label, icon and
+ * Flat view of the same entries. A screen resolves its own label, icon and
  * phase through this, so the groups above stay the single source of truth.
  */
 export const NAV: NavItem[] = NAV_GROUPS.flatMap((group) => group.items)

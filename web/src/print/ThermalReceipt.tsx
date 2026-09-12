@@ -4,10 +4,12 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { toSVG } from 'bwip-js/browser'
 import type {
-  Money, PaymentMode, QuoteAllocation, QuoteLine, SaleInvoice, StoreProfile,
+  BrandProfile, PaymentMode, QuoteAllocation, QuoteLine, SaleInvoice, StoreProfile,
 } from '@contract'
 import { formatAmount, formatExpiry, formatMoney, formatPercent, formatQty } from '@/lib/format'
+import { amountInWords, isZeroAmount } from '@/lib/words'
 import { cn } from '@/lib/cn'
+import { documentCredit } from '@/brand/applyBrand'
 import './print.css'
 
 /**
@@ -139,100 +141,12 @@ function taxLine(cells: readonly string[], cols: number, interState: boolean): s
     + fitCell(sgst, each, 'right')
 }
 
-// ------------------------------------------------------------- in words ---
-
-const ONES = [
-  '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
-  'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen',
-  'Eighteen', 'Nineteen',
-] as const
-
-const TENS = [
-  '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety',
-] as const
-
-function under100(n: number): string {
-  if (n < 20) return ONES[n] ?? ''
-  const tens = TENS[Math.floor(n / 10)] ?? ''
-  const ones = ONES[n % 10] ?? ''
-  return ones ? `${tens} ${ones}` : tens
-}
-
-function under1000(n: number): string {
-  const hundreds = Math.floor(n / 100)
-  const rest = under100(n % 100)
-  if (!hundreds) return rest
-  const head = `${ONES[hundreds] ?? ''} Hundred`
-  return rest ? `${head} ${rest}` : head
-}
-
-/**
- * Indian grouping — crore, lakh, thousand — not the Western short scale.
- * Recursive on the crore group so 1,00,00,00,000 spells "One Hundred Crore".
- */
-function rupeesInWords(n: bigint): string {
-  if (n === 0n) return 'Zero'
-  const words: string[] = []
-
-  const crore = n / 10_000_000n
-  if (crore > 0n) words.push(rupeesInWords(crore), 'Crore')
-
-  let rest = n % 10_000_000n
-  const lakh = Number(rest / 100_000n)
-  if (lakh) words.push(under100(lakh), 'Lakh')
-
-  rest %= 100_000n
-  const thousand = Number(rest / 1000n)
-  if (thousand) words.push(under100(thousand), 'Thousand')
-
-  const below = Number(rest % 1000n)
-  if (below) words.push(under1000(below))
-
-  return words.join(' ')
-}
-
-/**
- * Zero tested on the DIGITS: "0", "0.00" and "-0.00" are all zero, and none of
- * them may be answered by parsing money into a float to compare it.
- */
-export function isZeroAmount(value: Money): boolean {
-  return /^-?0+(?:\.0*)?$/.test(value.trim())
-}
-
-const MONEY = /^\s*(-)?(\d+)(?:\.(\d+))?\s*$/
-
-/**
- * "One Lakh Twenty Three Thousand Four Hundred Fifty Six Rupees and Seventy
- * Eight Paise Only" — the line a bank clerk and a GST officer both read.
- *
- * Parsing is done on the DIGITS, in BigInt: the paise of a lakh-rupee bill do
- * not survive a float, and the third decimal (which a discount can produce)
- * has to round half away from zero, which IEEE-754 will not do.
- */
-export function amountInWords(amount: Money): string {
-  const parsed = MONEY.exec(amount)
-  if (!parsed) return '—'
-
-  const [, minus, whole = '0', fraction = ''] = parsed
-  const roundUp = fraction.charAt(2) >= '5'
-  const paise = BigInt(whole + fraction.padEnd(2, '0').slice(0, 2)) + (roundUp ? 1n : 0n)
-
-  const rupees = paise / 100n
-  const remainder = Number(paise % 100n)
-
-  const rupeeWords = rupees > 0n
-    ? `${rupeesInWords(rupees)} ${rupees === 1n ? 'Rupee' : 'Rupees'}`
-    : ''
-  const paiseWords = remainder > 0
-    ? `${under100(remainder)} ${remainder === 1 ? 'Paisa' : 'Paise'}`
-    : ''
-
-  if (!rupeeWords && !paiseWords) return 'Zero Rupees Only'
-  const sign = minus ? 'Minus ' : ''
-  const body = rupeeWords && paiseWords ? `${rupeeWords} and ${paiseWords}` : rupeeWords || paiseWords
-  return `${sign}${body} Only`
-}
-
+/* ---------------------------------------------------------- in words ---
+   The number-to-words engine moved to `src/lib/words.ts`: the counter reads it
+   too — the customer display spells the total out, and the change pad counts
+   notes back — and neither may drag in bwip-js to do it. Re-exported here so
+   `@/print` stays the one import path for everything on the paper. */
+export { amountInWords, isZeroAmount }
 // ----------------------------------------------------------------- UPI ---
 
 /**
@@ -300,16 +214,26 @@ function stampOf(invoice: SaleInvoice): string {
 }
 
 export function ThermalReceipt({
-  invoice, store, columns = RECEIPT_COLUMNS, preview = false,
+  invoice, store, brand, columns = RECEIPT_COLUMNS, preview = false,
 }: {
   invoice: SaleInvoice
   store: StoreProfile
+  /**
+   * The reseller's branding.
+   *
+   * Optional so a caller printing from a context with no brand loaded still
+   * produces a receipt — a missing brand must never cost a customer their bill.
+   * Absent, the line is simply not printed, which is the same outcome as a
+   * reseller who has turned it off.
+   */
+  brand?: BrandProfile | null
   columns?: number
   /** Show the sheet on screen. The attribute has to sit on the sheet's own
       root, so a wrapper cannot supply it — see index.ts. */
   preview?: boolean
 }) {
   const { quote } = invoice
+  const credit = documentCredit(brand)
   const cols = columns
   const hasScheduleH1 = quote.lines.some((line) => line.drugSchedule === 'H1')
   const upi = upiPayUri(invoice, store)
@@ -358,6 +282,10 @@ export function ThermalReceipt({
               {itemDetailLine(alloc, manufacturerOf(line), cols)}
             </Line>
           ))}
+          {/* The dispensing instruction, indented under the item it belongs to.
+              This is the line the patient reads at home, and the reason the
+              counter is asked to write it in the first place. */}
+          {line.note ? <Line>{`   * ${line.note}`}</Line> : null}
         </div>
       ))}
 
@@ -435,6 +363,7 @@ export function ThermalReceipt({
 
       <div className="rx-print__gap" />
       <Line className="rx-print__words">{amountInWords(quote.netAmount)}</Line>
+      {invoice.note ? <Line>{`Note: ${invoice.note}`}</Line> : null}
 
       {qr && upi ? (
         <div className="rx-print__qr">
@@ -453,6 +382,14 @@ export function ThermalReceipt({
         </Line>
       ) : null}
       <Line centre>{store.footerNote}</Line>
+      {/* The reseller's line, LAST and below the shop's own note.
+          `documentFooter` and `hidePoweredBy` have been in the contract and
+          editable in Settings from the start, and nothing read them — a reseller
+          could type "Powered by MedSoft", save it, print, and find their name
+          nowhere on the document. A white-label setting that does not reach the
+          paper is worse than not offering one. Suppressed entirely when the
+          reseller has hidden it, which is the whole point of the flag. */}
+      {credit ? <Line centre className="rx-print__muted">{credit}</Line> : null}
       {invoice.status === 'VOIDED' ? (
         <Line centre className="rx-print__bold">*** VOIDED ***</Line>
       ) : null}

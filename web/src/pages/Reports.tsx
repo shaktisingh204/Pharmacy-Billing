@@ -1,5 +1,5 @@
-import { PhaseStub } from '@/components/PhaseStub'
+import { ReportsScreen } from '@/pages/reports/ReportsScreen'
 
 export default function Reports() {
-  return <PhaseStub to="/reports" body="Sales, purchases, profit, inventory and GST" />
+  return <ReportsScreen />
 }

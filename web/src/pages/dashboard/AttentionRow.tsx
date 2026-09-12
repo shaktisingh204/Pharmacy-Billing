@@ -1,6 +1,7 @@
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
-  AlertTriangle, Ban, CalendarClock, CircleSlash, NotebookPen, Pause,
+  AlertTriangle, Ban, CalendarClock, CircleSlash, ClipboardList, NotebookPen, Pause,
+  PackageX, Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { AttentionCounts } from '@contract'
@@ -28,43 +29,47 @@ const ITEMS: Item[] = [
   { key: 'nearExpiry30', label: 'Near expiry · 30d', icon: CalendarClock, tone: 'var(--status-expiry-30)', to: '/inventory' },
   { key: 'expired', label: 'Expired', icon: Ban, tone: 'var(--status-expired)', to: '/inventory' },
   { key: 'heldBills', label: 'Held bills', icon: Pause, tone: 'var(--status-expiry-180)', to: '/billing' },
-  { key: 'shortbook', label: 'Short book', icon: NotebookPen, tone: 'var(--info-9)', to: '/purchases' },
+  { key: 'shortbook', label: 'Short book', icon: NotebookPen, tone: 'var(--info-11)', to: '/purchases' },
+  /* From the same engine the notification bell uses. These three were behind the
+     bell for several waves while an owner opening the dashboard could not see
+     any of them — and the dashboard is the screen people actually look at. */
+  { key: 'claimsUnsettled', label: 'Claims unpaid', icon: PackageX, tone: 'var(--warning-11)', to: '/purchases?tab=returns' },
+  { key: 'ordersOverdue', label: 'Orders late', icon: ClipboardList, tone: 'var(--status-expiry-90)', to: '/purchases?tab=order' },
+  { key: 'dayUnclosed', label: 'Day not closed', icon: Wallet, tone: 'var(--status-expired)', to: '/sales' },
 ]
 
 export function AttentionRow({ counts }: { counts: AttentionCounts }) {
-  const navigate = useNavigate()
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-[var(--card-gap)] sm:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-9">
       {ITEMS.map((item) => {
         const n = counts[item.key]
         const quiet = n === 0
         return (
-          <button
+          <Link
             key={item.key}
-            type="button"
-            onClick={() => navigate(item.to)}
-            className="flex items-center gap-2.5 rounded-[var(--radius-md)] border px-3 py-2 text-left transition-colors duration-[var(--dur-fast)] hover:bg-hover"
+            to={item.to}
+            className="card-link flex items-center gap-3 rounded-[var(--radius-lg)] border bg-surface px-3.5 py-3 text-left no-underline"
             style={{
-              borderColor: quiet ? 'var(--border-subtle)' : `color-mix(in srgb, ${item.tone} 35%, transparent)`,
-              backgroundColor: quiet ? 'transparent' : `color-mix(in srgb, ${item.tone} 8%, transparent)`,
+              borderColor: quiet ? 'var(--border-subtle)' : `color-mix(in srgb, ${item.tone} 38%, transparent)`,
+              backgroundColor: quiet ? 'var(--bg-surface)' : `color-mix(in srgb, ${item.tone} 7%, var(--bg-surface))`,
             }}
           >
             <item.icon
-              size={16}
+              size={18}
               aria-hidden
               className="shrink-0"
               style={{ color: quiet ? 'var(--fg-subtle)' : item.tone }}
             />
             <span className="min-w-0">
               <span
-                className="block text-base font-semibold leading-tight tabular-nums-off"
+                className="block text-xl leading-none font-semibold tabular-nums-off"
                 style={{ color: quiet ? 'var(--fg-subtle)' : item.tone }}
               >
                 {n}
               </span>
-              <span className="block truncate text-2xs text-fg-muted">{item.label}</span>
+              <span className="mt-1 block truncate text-2xs text-fg-muted">{item.label}</span>
             </span>
-          </button>
+          </Link>
         )
       })}
     </div>

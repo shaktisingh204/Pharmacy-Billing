@@ -1,5 +1,5 @@
-import { PhaseStub } from '@/components/PhaseStub'
+import { DashboardScreen } from './dashboard/DashboardScreen'
 
 export default function Dashboard() {
-  return <PhaseStub to="/" body="Today's sales, purchases, profit, low stock and expiring batches" />
+  return <DashboardScreen />
 }

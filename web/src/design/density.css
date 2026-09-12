@@ -8,7 +8,32 @@
  * NOTE: `pos` is LARGER, not smaller. A counter operator on a matte touch panel
  * needs bigger targets even though the screen carries more information.
  */
+/*
+ * `spacious` is the DEFAULT now, and it is the redesign.
+ *
+ * The old default was `comfortable`, which was tuned for a counter grid — and
+ * every non-grid screen in the app inherited a row height and a control size
+ * chosen so that twenty cart lines fit above the fold. A dashboard does not need
+ * that and reads cramped because of it.
+ *
+ * The dense modes are all still here and still used where density is the point:
+ * the Medicines, Inventory and Sales grids run `compact`, and /billing runs
+ * `pos`. Making the whole app spacious would cost the counter rows it cannot
+ * spare, which is why this is a mode rather than a global change.
+ */
 :root,
+[data-density='spacious'] {
+  --row-h: 52px;
+  --control-h: 44px;
+  --cell-px: 16px;
+  --font-body: 15px;
+  --icon: 18px;
+  --tap-min: 44px;
+  --page-px: 32px;
+  --card-px: 20px;
+  --card-gap: 16px;
+}
+
 [data-density='comfortable'] {
   --row-h: 44px;
   --control-h: 36px;
@@ -16,9 +41,15 @@
   --font-body: 14px;
   --icon: 16px;
   --tap-min: 36px;
+  --page-px: 24px;
+  --card-px: 16px;
+  --card-gap: 12px;
 }
 
 [data-density='compact'] {
+  --page-px: 24px;
+  --card-px: 14px;
+  --card-gap: 12px;
   --row-h: 36px;
   --control-h: 32px;
   --cell-px: 10px;
@@ -28,7 +59,14 @@
 }
 
 [data-density='pos'] {
+  --page-px: 16px;
+  --card-px: 12px;
+  --card-gap: 10px;
   --row-h: 44px;
+  /* The cart is the one grid on screen that is read line-by-line rather than
+     scanned, and it is the one that has to fit twenty rows above the fold. It
+     runs two pixels tighter than the surrounding POS density on purpose. */
+  --cart-row-h: 38px;
   --control-h: 40px;
   --cell-px: 12px;
   --font-body: 15px;

@@ -19,49 +19,87 @@
   --accent-11: #115E59;  /* accent text on tint */
 
   /* --- Surfaces --- */
-  --bg-app:     #F7F8F8;
+  /* Lighter, and with MORE separation between the app ground and a card than
+     before. The old pair sat four points apart, so a card floated only because
+     of its border; at this distance the surface reads as raised on its own and
+     the border can soften without the layout going flat. */
+  --bg-app:     #F4F6FA;
   --bg-surface: #FFFFFF;
-  --bg-subtle:  #F1F3F4;  /* table headers, zebra */
-  --bg-inset:   #ECEFF0;  /* input wells */
-  --bg-hover:   #F4F6F6;
+  --bg-subtle:  #F7F9FC;  /* table headers, zebra */
+  --bg-inset:   #EEF2F7;  /* input wells */
+  --bg-hover:   #F5F8FC;
+  /* A second, cooler ground for full-bleed page headers. */
+  --bg-raised:  #FBFCFE;
 
-  /* --- Text (contrast verified: fg on bg-app 15.6:1, fg-muted on white 5.0:1) --- */
+  /* --- Text ---
+     Every level that carries WORDS clears WCAG AA (4.5:1) against the DARKEST
+     ground it is ever painted on, which is --bg-inset and not white. Measured,
+     not assumed — and the previous values were assumed: an axe sweep found 57
+     contrast failures on the dashboard alone, because --fg-subtle was 2.29:1 on
+     inset and --fg-muted was 4.43:1, a hair under the floor. Both looked fine to
+     everyone who had ever looked at them, which is exactly why a machine checks.
+
+     Ratios against --bg-inset (#EEF2F7), the strictest case:
+       fg          15.8:1
+       fg-muted     6.5:1
+       fg-subtle    4.7:1   — headroom over 4.5 on purpose; a token sitting
+                              exactly on a threshold fails the next time a
+                              surface moves by one step
+       fg-disabled  1.7:1   — EXEMPT. WCAG 1.4.3 excludes inactive controls, and
+                              a disabled field that reads as strongly as a live
+                              one is its own usability defect. */
   --fg:          #101828;
-  --fg-muted:    #667085;
-  --fg-subtle:   #98A2B3;
+  --fg-muted:    #4F5666;
+  --fg-subtle:   #5F6C81;
   --fg-disabled: #B4BCC6;
   --fg-on-accent:#FFFFFF;
 
   /* --- Borders, three weights. The single biggest "premium" tell. --- */
-  --border-subtle: #EAECF0;  /* internal table rules */
-  --border:        #D0D5DD;  /* cards, inputs */
-  --border-strong: #98A2B3;  /* hover, pressed, focus-within */
+  --border-subtle: #EDF0F5;  /* internal table rules */
+  --border:        #DCE2EA;  /* cards, inputs */
+  --border-strong: #9AA5B4;  /* hover, pressed, focus-within */
 
   /* --- Semantic --- */
-  --success-3: #DCFCE7; --success-9: #16A34A; --success-11: #15803D;
-  --warning-3: #FEF3C7; --warning-9: #D97706; --warning-11: #B45309;
+  /* The -11 steps carry WORDS on the -3 tints and on 12% self-tints (chips), so
+     they clear AA against the DARKEST of those, not against white. The shipped
+     values sat at 4.25-4.57 — passing on paper, failing the moment a chip tinted
+     its own background, which is how every status chip in the product renders.
+     Measured on the -3 tint: success 5.20, warning 5.22, danger 5.30, info 5.49. */
+  --success-3: #DCFCE7; --success-9: #16A34A; --success-11: #137638;
+  --warning-3: #FEF3C7; --warning-9: #D97706; --warning-11: #A44C08;
   --danger-3:  #FEE2E2; --danger-9:  #DC2626; --danger-11:  #B91C1C;
   --info-3:    #DBEAFE; --info-9:    #2563EB; --info-11:    #1D4ED8;
 
-  /* --- Pharmacy status. First-class, never ad-hoc. --- */
-  --status-expired:      #DC2626;
-  --status-expiry-30:    #DC2626;
-  --status-expiry-60:    #EA580C;
-  --status-expiry-90:    #D97706;
+  /* --- Pharmacy status. First-class, never ad-hoc. ---
+     Every one of these is a CHIP LABEL before it is anything else — 12px text on
+     a 12% tint of itself — so each clears AA on that tint and on plain white,
+     with headroom (~5:1 on both). The shipped values were the -9 fill steps
+     doing a text job at 2.3-4.4:1, and an axe sweep found them on every
+     inventory and medicine row in the product. Hue is preserved to the degree
+     sRGB allows, because the buckets are told apart by hue and a shift would
+     undo the thing the palette is for. */
+  /* Darker than the other buckets by one notch on purpose: an expired or
+     30-day chip is the only one that renders on an already-TINTED row, so its
+     own 12% tint sits on a red ground rather than on white and needs the
+     headroom to survive it. */
+  --status-expired:      #A71B1B;
+  --status-expiry-30:    #A71B1B;
+  --status-expiry-60:    #AB4009;
+  --status-expiry-90:    #965204;
   /* Deliberately a DIFFERENT HUE: the 180-day bucket means "still returnable to
      the supplier". That is an opportunity, not a danger, and it must never read
      as red or staff will treat the actionable bucket as noise. */
-  --status-expiry-180:   #6366F1;
-  --status-low-stock:    #D97706;
-  --status-out-of-stock: #98A2B3;
-  --status-quarantine:   #6B7280;
+  --status-expiry-180:   #474AEE;
+  --status-low-stock:    #965204;
+  --status-out-of-stock: #596579;
+  --status-quarantine:   #5E6571;
 
   /* --- Drug schedule chips --- */
-  --schedule-otc: #667085;
-  --schedule-h:   #7C3AED;
-  --schedule-h1:  #C026D3;  /* must be unmistakable at a glance */
+  --schedule-otc: #5B6477;
+  --schedule-h:   #7834EC;
+  --schedule-h1:  #A420B4;  /* must be unmistakable at a glance */
   --schedule-x:   #BE123C;
-  --schedule-nrx: #0891B2;
+  --schedule-nrx: #066C85;
 
   /* --- Spacing: 4px base, no off-scale values --- */
   --space-0: 0;     --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
@@ -78,6 +116,11 @@
   /* --- Shadows: low alpha, tinted with the text neutral, never pure black.
          Cards get border + shadow-xs. Elevation is reserved for things that float. --- */
   --shadow-xs: 0 1px 2px 0 rgb(16 24 40 / .05);
+  /* The card shadow. Two layers: a tight contact shadow and a wide ambient one,
+     which is what separates a surface that looks lit from one that looks
+     outlined. Low alpha and tinted with the text neutral, never pure black. */
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / .04), 0 4px 12px -4px rgb(16 24 40 / .06);
+  --shadow-card-hover: 0 1px 2px 0 rgb(16 24 40 / .05), 0 8px 20px -6px rgb(16 24 40 / .10);
   --shadow-sm: 0 1px 3px 0 rgb(16 24 40 / .08), 0 1px 2px -1px rgb(16 24 40 / .06);
   --shadow-md: 0 4px 8px -2px rgb(16 24 40 / .08), 0 2px 4px -2px rgb(16 24 40 / .05);
   --shadow-lg: 0 12px 24px -6px rgb(16 24 40 / .10), 0 4px 8px -4px rgb(16 24 40 / .06);
@@ -93,15 +136,29 @@
                'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  --text-2xs: 11px;  --leading-2xs: 16px;
-  --text-xs:  12px;  --leading-xs:  16px;
-  --text-sm:  13px;  --leading-sm:  18px;
-  --text-base:14px;  --leading-base:20px;
-  --text-lg:  16px;  --leading-lg:  24px;
-  --text-xl:  20px;  --leading-xl:  28px;
-  --text-2xl: 24px;  --leading-2xl: 32px;
-  --text-3xl: 30px;  --leading-3xl: 38px;
-  --text-4xl: 40px;  --leading-4xl: 44px;
+  /* Lifted roughly a step throughout. The old scale was tuned for a dense
+     counter grid and every other screen inherited it, so a dashboard headline
+     and a table cell were two points apart. Body goes to 15 and the display
+     sizes open up, which is what makes a page read as designed rather than as
+     a form. The counter keeps its own density (see density.css), so the billing
+     grid is unaffected by this. */
+  --text-2xs: 12px;  --leading-2xs: 16px;
+  --text-xs:  13px;  --leading-xs:  18px;
+  --text-sm:  14px;  --leading-sm:  20px;
+  --text-base:15px;  --leading-base:22px;
+  --text-lg:  17px;  --leading-lg:  26px;
+  --text-xl:  22px;  --leading-xl:  30px;
+  --text-2xl: 28px;  --leading-2xl: 36px;
+  --text-3xl: 34px;  --leading-3xl: 42px;
+  --text-4xl: 44px;  --leading-4xl: 50px;
+  /* Display, for the one number a screen exists to show. */
+  --text-5xl: 56px;  --leading-5xl: 60px;
+
+  /* Optical tracking. Large text set at the same tracking as body reads loose;
+     small caps labels read tight. Both are corrected here rather than per use. */
+  --tracking-display: -0.02em;
+  --tracking-tight:   -0.011em;
+  --tracking-label:    0.06em;
 
 
   /* --- Data visualisation ------------------------------------------------
@@ -114,7 +171,15 @@
          slot 5 is yellow at 2.17:1, so it ships ONLY with direct labels
 
      Red is deliberately absent: it is reserved for status, and a series that
-     borrows the danger hue makes "expired" mean nothing. */
+     borrows the danger hue makes "expired" mean nothing.
+
+     THESE DO NOT FOLLOW A WHITE-LABEL, and that is the decision, not an
+     oversight. The palette is validated as a SET — repainting slot 1 with a
+     reseller's colour would move it against the four hues it was separated
+     from, and a chart nobody with deuteranopia can read is a worse outcome
+     than a chart that is not in the shop's colours. The sequential ramp is
+     the same argument: it encodes how OLD stock is, not who sold the
+     software. The brand lives in the accent ramp, which is overridable. */
   --viz-1: #0D9488;  /* teal — the brand accent leads */
   --viz-2: #4A3AA7;  /* violet */
   --viz-3: #2A78D6;  /* blue */
@@ -154,6 +219,7 @@
   --color-accent-11: var(--accent-11);
 
   --color-app: var(--bg-app);
+  --color-raised: var(--bg-raised);
   --color-surface: var(--bg-surface);
   --color-subtle: var(--bg-subtle);
   --color-inset: var(--bg-inset);
@@ -214,6 +280,8 @@
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
   --shadow-overlay: var(--shadow-overlay);
 
   --font-sans: var(--font-sans);
@@ -237,6 +305,12 @@
   --text-3xl--line-height: var(--leading-3xl);
   --text-4xl: var(--text-4xl);
   --text-4xl--line-height: var(--leading-4xl);
+  --text-5xl: var(--text-5xl);
+  --text-5xl--line-height: var(--leading-5xl);
+
+  --tracking-display: var(--tracking-display);
+  --tracking-tight: var(--tracking-tight);
+  --tracking-label: var(--tracking-label);
 
   --ease-out-quint: var(--ease);
 }

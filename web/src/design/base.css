@@ -104,18 +104,55 @@
   .micro-label {
     font-size: var(--text-2xs);
     line-height: var(--leading-2xs);
-    letter-spacing: 0.04em;
+    /* Tracked out further than before. Uppercase at 12px is a lockup of
+       rectangles, and the letterforms need the air or the label reads as a
+       block rather than as words. */
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--fg-subtle);
   }
 
   /* Cards get a border + the flattest shadow. Elevation is for things that float. */
+  /* A card is LIT, not outlined.
+     The border stays — it is what holds the shape on a matte panel viewed at an
+     angle, where a soft shadow disappears — but it softened a step and the
+     ambient shadow now does the separating. The old pairing of a hard border and
+     a 1px shadow read as a box drawn on a page; this reads as a surface. */
   .card {
     background: var(--bg-surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-xs);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* An interactive card — one that opens something. Only these lift on hover;
+     a static panel that moves under the cursor is noise. */
+  .card-link {
+    transition: box-shadow var(--dur-base) var(--ease),
+                border-color var(--dur-base) var(--ease),
+                transform var(--dur-base) var(--ease);
+  }
+  .card-link:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+  }
+
+  /* The one number a screen exists to show. Tabular, tight, and optically
+     corrected — a 44px figure set at body tracking reads loose. */
+  .display-num {
+    font-variant-numeric: tabular-nums slashed-zero;
+    font-feature-settings: 'tnum' 1, 'zero' 1;
+    letter-spacing: var(--tracking-display);
+    font-weight: 600;
+    line-height: 1.05;
+  }
+
+  /* A page header that sits on its own ground rather than on the app's. */
+  .page-header {
+    background: var(--bg-raised);
+    border-bottom: 1px solid var(--border-subtle);
   }
 
   /* The scroll region inside a pane. The pinned totals bar must never obscure the

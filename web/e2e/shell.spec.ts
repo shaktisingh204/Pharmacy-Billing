@@ -1,33 +1,29 @@
 import { expect, test } from '@playwright/test'
 
-/* Billing is deliberately absent: it is no longer a stub. Its own suite is
-   e2e/billing.spec.ts. */
-const ROUTES = [
-  ['/', 'Dashboard'],
-  ['/medicines', 'Medicines'],
-  ['/inventory', 'Inventory'],
-  ['/purchases', 'Purchases'],
-  ['/sales', 'Sales'],
-  ['/customers', 'Customers'],
-  ['/suppliers', 'Suppliers'],
-  ['/reports', 'Reports'],
-  ['/users', 'Users & Roles'],
-  ['/settings', 'Settings'],
-] as const
+/* Billing, Dashboard, Medicines and Settings are deliberately absent: none is a
+   stub any more. Their suites are e2e/billing*.spec.ts, dashboard.spec.ts,
+   medicines.spec.ts and settings.spec.ts. */
+/*
+ * Every one of the eleven destinations is now a real page, so there is nothing
+ * left to assert as a placeholder. What replaces this is stronger: e2e/pages.spec.ts
+ * sweeps every route for one <h1>, no console errors, a non-scrolling document and
+ * a visible focus ring, and each page has its own behavioural suite.
+ *
+ * The PhaseStub component stays — it is what a NEW screen scaffolds against.
+ */
 
 test.describe('app shell', () => {
-  for (const [path, label] of ROUTES) {
-    test(`${label} is a real route with a designed empty state`, async ({ page }) => {
-      const errors: string[] = []
-      page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()) })
+  test('Medicines is the real item master, not a stub', async ({ page }) => {
+    await page.goto('/medicines')
+    await expect(page.getByRole('heading', { level: 1, name: 'Medicines' })).toBeVisible()
+    await expect(page.getByText(/Full fidelity in Phase/)).toHaveCount(0)
+  })
 
-      await page.goto(path)
-      await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible()
-      // Never a dead link: every scaffolded screen renders the empty state.
-      await expect(page.getByTestId('state-empty')).toBeVisible()
-      expect(errors, `console errors on ${path}`).toEqual([])
-    })
-  }
+  test('Dashboard is the real dashboard, not a stub', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1, name: /Good (morning|afternoon|evening)/ })).toBeVisible()
+    await expect(page.getByText(/Full fidelity in Phase/)).toHaveCount(0)
+  })
 
   test('Billing is the real POS, not a stub', async ({ page }) => {
     await page.goto('/billing')
